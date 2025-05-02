@@ -1,0 +1,147 @@
+local mainGui = Instance.new("ScreenGui", game.CoreGui)
+mainGui.Name = "AutoFarmUI"
+
+local mainFrame = Instance.new("Frame", mainGui)
+mainFrame.Size = UDim2.new(0, 200, 0, 80)
+mainFrame.Position = UDim2.new(0.4, 0, 0.1, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BorderColor3 = Color3.fromRGB(212, 175, 55)
+mainFrame.BorderSizePixel = 3
+mainFrame.Active = true
+mainFrame.Draggable = true
+
+local toggle = Instance.new("TextButton", mainFrame)
+toggle.Size = UDim2.new(1, -10, 0, 50)
+toggle.Position = UDim2.new(0, 5, 0, 15)
+toggle.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+toggle.TextColor3 = Color3.fromRGB(0, 0, 0)
+toggle.Text = "Auto Farm: OFF"
+toggle.Font = Enum.Font.GothamBold
+toggle.TextSize = 16
+toggle.BorderSizePixel = 2
+toggle.BorderColor3 = Color3.fromRGB(255, 255, 255)
+
+local autoFarmActive = false
+
+toggle.MouseButton1Click:Connect(function()
+	autoFarmActive = not autoFarmActive
+	toggle.Text = autoFarmActive and "Auto Farm: ON" or "Auto Farm: OFF"
+end)
+
+local bankGui = Instance.new("ScreenGui", game.CoreGui)
+bankGui.Name = "AutoBankUI"
+
+local bankFrame = Instance.new("Frame", bankGui)
+bankFrame.Size = UDim2.new(0, 200, 0, 110)
+bankFrame.Position = UDim2.new(0.4, 210, 0.1, 0)
+bankFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+bankFrame.BorderColor3 = Color3.fromRGB(212, 175, 55)
+bankFrame.BorderSizePixel = 3
+bankFrame.Active = true
+bankFrame.Draggable = true
+
+local autoBank = Instance.new("TextButton", bankFrame)
+autoBank.Size = UDim2.new(1, -10, 0, 50)
+autoBank.Position = UDim2.new(0, 5, 0, 50)
+autoBank.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+autoBank.TextColor3 = Color3.fromRGB(0, 0, 0)
+autoBank.Text = "Auto BANK: OFF"
+autoBank.Font = Enum.Font.GothamBold
+autoBank.TextSize = 16
+autoBank.BorderSizePixel = 2
+autoBank.BorderColor3 = Color3.fromRGB(255, 255, 255)
+
+local autoBanking = false
+
+autoBank.MouseButton1Click:Connect(function()
+	autoBanking = not autoBanking
+	autoBank.Text = autoBanking and "Auto BANK: ON" or "Auto BANK: OFF"
+end)
+
+local tpButton = Instance.new("TextButton", bankFrame)
+tpButton.Size = UDim2.new(1, -20, 0, 40)
+tpButton.Position = UDim2.new(0, 5, 0, 5)
+tpButton.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+tpButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+tpButton.Text = "Tp NPC"
+tpButton.Font = Enum.Font.GothamBold
+tpButton.TextSize = 14
+tpButton.BorderSizePixel = 2
+tpButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
+
+tpButton.MouseButton1Click:Connect(function()
+	game.Players.LocalPlayer.Character:MoveTo(Vector3.new(-584, 31, 347))
+end)
+
+local statusGui = Instance.new("ScreenGui", game.CoreGui)
+statusGui.Name = "BankStatusUI"
+
+local statusFrame = Instance.new("Frame", statusGui)
+statusFrame.Size = UDim2.new(0, 250, 0, 60)
+statusFrame.Position = UDim2.new(0.4, 420, 0.1, 0)
+statusFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+statusFrame.BorderColor3 = Color3.fromRGB(212, 175, 55)
+statusFrame.BorderSizePixel = 3
+statusFrame.Active = true
+statusFrame.Draggable = true
+
+local statusLabel = Instance.new("TextLabel", statusFrame)
+statusLabel.Size = UDim2.new(1, -10, 1, -10)
+statusLabel.Position = UDim2.new(0, 5, 0, 5)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Banco: (Carregando...)"
+statusLabel.Font = Enum.Font.GothamBold
+statusLabel.TextSize = 14
+statusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+
+task.spawn(function()
+	while true do
+		local txtLabel = workspace.Map.Robberies.Bank.StatusDisplay.SurfaceGui.TextLabel
+		statusLabel.Text = "Banco: " .. txtLabel.Text
+		statusLabel.TextColor3 = txtLabel.TextColor3
+		task.wait(1)
+	end
+end)
+
+task.spawn(function()
+	while true do
+		if autoBanking then
+			game.Players.LocalPlayer.Character:MoveTo(Vector3.new(45, 16, 32))
+			task.wait(0.1)
+			game.Players.LocalPlayer.Character:MoveTo(Vector3.new(52, 16, 32))
+		end
+		task.wait(0.1)
+	end
+end)
+
+-- Collect Cash (sempre ativo)
+task.spawn(function()
+	while true do
+		pcall(function()
+			game:GetService("ReplicatedStorage").Assets.Remotes.Robbery:FireServer("CollectCash")
+		end)
+		task.wait(0.1)
+	end
+end)
+
+task.spawn(function()
+	while true do
+		for _, prompt in ipairs(workspace:GetDescendants()) do
+			if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+				prompt.HoldDuration = 0
+				local dist = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - prompt.Parent.Position).Magnitude
+				if dist < prompt.MaxActivationDistance then
+					if tostring(prompt.Parent) == "Handle" and prompt.Parent.Parent.Name == "C4" then
+						local heldTool = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+						if heldTool and (heldTool.Name == "C4" or heldTool.Name == "c4" or heldTool.Name == "Dinamite") then
+							pcall(function() fireproximityprompt(prompt) end)
+						end
+					else
+						pcall(function() fireproximityprompt(prompt) end)
+					end
+				end
+			end
+		end
+		task.wait(0.5)
+	end
+end)
