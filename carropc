@@ -166,7 +166,7 @@ task.spawn(function()
 				game:GetService("ReplicatedStorage").Assets.Remotes.Robbery:FireServer("CollectCash")
 			end)
 		end
-		task.wait(0.5)
+		task.wait(0.1)
 	end
 end)
 
@@ -177,10 +177,10 @@ task.spawn(function()
 			local char = LocalPlayer.Character
 			if char then
 				char:MoveTo(Vector3.new(45, 16, 32))
-				task.wait(0.5)
+				task.wait(0.1)
 				char:MoveTo(Vector3.new(53, 16, 32))
 			end
 		end
-		task.wait(0.5)
+		task.wait(0.1)
 	end
 end)
