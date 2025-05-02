@@ -1,0 +1,186 @@
+-- KyxLife PC Mode with Visual Effects, Keybinds & Prompt Activation
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+
+-- Variáveis principais
+local autoFarmEnabled = false
+local autoBankEnabled = false
+local settingKeys = true
+local keybinds = { AutoFarm = nil, AutoBank = nil, TpNPC = nil }
+
+-- Criar função de notificação com efeito visual
+local function showNotification(msg)
+	local notif = Instance.new("TextLabel")
+	notif.Text = msg
+	notif.TextColor3 = Color3.new(1, 1, 1)
+	notif.TextStrokeTransparency = 0
+	notif.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+	notif.Size = UDim2.new(0, 250, 0, 40)
+	notif.Position = UDim2.new(0.5, -125, 0.9, 0)
+	notif.AnchorPoint = Vector2.new(0.5, 0)
+	notif.Font = Enum.Font.GothamBold
+	notif.TextSize = 18
+	notif.BackgroundTransparency = 1
+	notif.BorderSizePixel = 0
+	notif.Parent = game:GetService("CoreGui")
+
+	TweenService:Create(notif, TweenInfo.new(0.4), {BackgroundTransparency = 0.2}):Play()
+	TweenService:Create(notif, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+
+	task.delay(2.5, function()
+		TweenService:Create(notif, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+		TweenService:Create(notif, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+		wait(0.6)
+		notif:Destroy()
+	end)
+end
+
+-- Criar GUI de status do banco
+local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+gui.Name = "KyxLifeStatus"
+
+local statusFrame = Instance.new("Frame", gui)
+statusFrame.Position = UDim2.new(0.01, 0, 0.05, 0)
+statusFrame.Size = UDim2.new(0, 220, 0, 50)
+statusFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+statusFrame.BorderColor3 = Color3.fromRGB(212, 175, 55)
+statusFrame.BorderSizePixel = 2
+statusFrame.Name = "StatusFrame"
+statusFrame.Active = true
+statusFrame.Draggable = true
+
+local statusText = Instance.new("TextLabel", statusFrame)
+statusText.Size = UDim2.new(1, 0, 1, 0)
+statusText.BackgroundTransparency = 1
+statusText.Text = "Banco: Carregando..."
+statusText.Font = Enum.Font.GothamBold
+statusText.TextSize = 16
+statusText.TextColor3 = Color3.new(1, 1, 1)
+
+-- GUI de keybinds
+local keyFrame = Instance.new("Frame", gui)
+keyFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
+keyFrame.Size = UDim2.new(0, 280, 0, 180)
+keyFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+keyFrame.BorderColor3 = Color3.fromRGB(212, 175, 55)
+keyFrame.BorderSizePixel = 2
+keyFrame.Active = true
+keyFrame.Draggable = true
+
+local function makeBindButton(name, posY)
+	local label = Instance.new("TextLabel", keyFrame)
+	label.Position = UDim2.new(0.05, 0, posY, 0)
+	label.Size = UDim2.new(0, 100, 0, 25)
+	label.Text = name
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 14
+
+	local button = Instance.new("TextButton", keyFrame)
+	button.Position = UDim2.new(0.45, 0, posY, 0)
+	button.Size = UDim2.new(0, 120, 0, 25)
+	button.Text = "Clique para definir"
+	button.Font = Enum.Font.Gotham
+	button.TextSize = 14
+	button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	button.TextColor3 = Color3.new(1, 1, 1)
+
+	button.MouseButton1Click:Connect(function()
+		button.Text = "Aguardando tecla..."
+		local inputConn
+		inputConn = UIS.InputBegan:Connect(function(input, gameProcessed)
+			if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard then
+				keybinds[name] = input.KeyCode
+				button.Text = input.KeyCode.Name
+				inputConn:Disconnect()
+			end
+		end)
+	end)
+end
+
+makeBindButton("AutoFarm", 0.1)
+makeBindButton("AutoBank", 0.4)
+makeBindButton("TpNPC", 0.7)
+
+local confirm = Instance.new("TextButton", keyFrame)
+confirm.Size = UDim2.new(0.9, 0, 0, 30)
+confirm.Position = UDim2.new(0.05, 0, 0.88, 0)
+confirm.Text = "Confirmar"
+confirm.Font = Enum.Font.GothamBold
+confirm.TextSize = 14
+confirm.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+confirm.TextColor3 = Color3.new(1, 1, 1)
+
+confirm.MouseButton1Click:Connect(function()
+	keyFrame.Visible = false
+	settingKeys = false
+	showNotification("Keybinds definidas!")
+end)
+
+-- Monitorar tecla pressionada
+UIS.InputBegan:Connect(function(input, gp)
+	if gp or settingKeys then return end
+	if input.KeyCode == keybinds.AutoFarm then
+		autoFarmEnabled = not autoFarmEnabled
+		showNotification("Auto Farm " .. (autoFarmEnabled and "ON" or "OFF"))
+	elseif input.KeyCode == keybinds.AutoBank then
+		autoBankEnabled = not autoBankEnabled
+		showNotification("Auto BANK " .. (autoBankEnabled and "ON" or "OFF"))
+	elseif input.KeyCode == keybinds.TpNPC then
+		LocalPlayer.Character:MoveTo(Vector3.new(-584, 31, 347))
+		showNotification("Teleportado com sucesso")
+	end
+end)
+
+-- Loop status banco
+task.spawn(function()
+	while true do
+		local ok, result = pcall(function()
+			local txt = workspace.Map.Robberies.Bank.StatusDisplay.SurfaceGui.TextLabel
+			statusText.Text = "Banco: " .. txt.Text
+			statusText.TextColor3 = txt.TextColor3
+		end)
+		task.wait(1)
+	end
+end)
+
+-- AutoFarm
+task.spawn(function()
+	while true do
+		if autoFarmEnabled then
+			for _, pp in ipairs(workspace:GetDescendants()) do
+				if pp:IsA("ProximityPrompt") and (pp.MaxActivationDistance > 0) then
+					local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+					if root and (pp.Parent.Position - root.Position).Magnitude <= pp.MaxActivationDistance then
+						pp.HoldDuration = 0
+						fireproximityprompt(pp)
+					end
+				end
+			end
+			pcall(function()
+				game:GetService("ReplicatedStorage").Assets.Remotes.Robbery:FireServer("CollectCash")
+			end)
+		end
+		task.wait(0.5)
+	end
+end)
+
+-- AutoBank
+task.spawn(function()
+	while true do
+		if autoBankEnabled then
+			local char = LocalPlayer.Character
+			if char then
+				char:MoveTo(Vector3.new(45, 16, 32))
+				task.wait(0.5)
+				char:MoveTo(Vector3.new(53, 16, 32))
+			end
+		end
+		task.wait(0.5)
+	end
+end)
