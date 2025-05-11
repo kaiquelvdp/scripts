@@ -147,7 +147,7 @@ local function throwPlayer(player)
         local A_1 = "slash"
         local A_2 = player.Character
         local A_3 = Vector3.new(10e10, 10e10, 10e10)
-        local Event = LocalPlayer.Backpack:FindFirstChild("Default") and LocalPlayer.Backpack.Default:FindFirstChild("Event")
+        local Event = LocalPlayer.Backpack:FindFirstChild("God's Hand") and LocalPlayer.Backpack["God's Hand"]:FindFirstChild("Event")
         if Event then
             Event:FireServer(A_1, A_2, A_3)
         end
