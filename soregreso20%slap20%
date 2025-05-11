@@ -45,8 +45,8 @@ floatingStroke.Parent = floatingButton
 
 -- Create Main GUI Frame
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 300, 0, 400)
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+mainFrame.Size = UDim2.new(0, 350, 0, 400) -- Slightly wider to accommodate keybind selectors
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -200)
 mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 mainFrame.Visible = false
 mainFrame.Parent = screenGui
@@ -85,7 +85,7 @@ title.Parent = mainFrame
 -- Credits
 local credits = Instance.new("TextLabel")
 credits.Size = UDim2.new(0, 100, 0, 30)
-credits.Position = UDim2.new(0, 210, 0, 20)
+credits.Position = UDim2.new(0, 240, 0, 20)
 credits.BackgroundTransparency = 1
 credits.Text = "By Kaique"
 credits.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -141,7 +141,7 @@ floatingButton.MouseButton1Click:Connect(function()
     floatingButton.Text = mainFrame.Visible and "−" or "+"
 end)
 
--- Function to Throw Player
+-- Function to Throw Player (Updated to use God's Hand)
 local function throwPlayer(player)
     if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         local A_1 = "slash"
@@ -154,9 +154,43 @@ local function throwPlayer(player)
     end
 end
 
+-- Keybind Management
+local keybinds = {
+    ThrowAll = Enum.KeyCode.F, -- Default keybind for Throw All
+    ThrowTarget = Enum.KeyCode.G -- Default keybind for Throw Target
+}
+local settingKeybind = nil
+
+-- Function to Create Keybind Button
+local function createKeybindButton(parent, position, action)
+    local keybindButton = Instance.new("TextButton")
+    keybindButton.Size = UDim2.new(0, 50, 0, 50)
+    keybindButton.Position = position
+    keybindButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    keybindButton.Text = keybinds[action].Name
+    keybindButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+    keybindButton.TextScaled = true
+    keybindButton.Font = Enum.Font.Gotham
+    keybindButton.Parent = parent
+    local keybindCorner = Instance.new("UICorner")
+    keybindCorner.CornerRadius = UDim.new(0, 10)
+    keybindCorner.Parent = keybindButton
+    local keybindStroke = Instance.new("UIStroke")
+    keybindStroke.Color = Color3.fromRGB(100, 100, 100)
+    keybindStroke.Thickness = 1
+    keybindStroke.Parent = keybindButton
+
+    keybindButton.MouseButton1Click:Connect(function()
+        keybindButton.Text = "Press a key..."
+        settingKeybind = action
+    end)
+
+    return keybindButton
+end
+
 -- Button 1: Throw All Players Except Self
 local throwAllButton = Instance.new("TextButton")
-throwAllButton.Size = UDim2.new(0, 260, 0, 50)
+throwAllButton.Size = UDim2.new(0, 200, 0, 50)
 throwAllButton.Position = UDim2.new(0, 20, 0, 70)
 throwAllButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 throwAllButton.Text = "Throw All Players"
@@ -171,6 +205,9 @@ local throwAllStroke = Instance.new("UIStroke")
 throwAllStroke.Color = Color3.fromRGB(100, 100, 100)
 throwAllStroke.Thickness = 1
 throwAllStroke.Parent = throwAllButton
+
+-- Keybind Button for Throw All
+local throwAllKeybindButton = createKeybindButton(mainFrame, UDim2.new(0, 230, 0, 70), "ThrowAll")
 
 throwAllButton.MouseButton1Click:Connect(function()
     for _, player in pairs(Players:GetPlayers()) do
@@ -188,12 +225,10 @@ highlight.OutlineTransparency = 0
 
 -- Function to Set Target
 local function setTarget(player)
-    -- Clear existing highlight
     highlight.Adornee = nil
     highlight.Parent = nil
     currentTarget = nil
 
-    -- Set new target if provided
     if player and player.Character then
         currentTarget = player
         highlight.Adornee = player.Character
@@ -221,7 +256,7 @@ end)
 
 -- Button 2: Throw Targeted Player
 local throwTargetButton = Instance.new("TextButton")
-throwTargetButton.Size = UDim2.new(0, 260, 0, 50)
+throwTargetButton.Size = UDim2.new(0, 200, 0, 50)
 throwTargetButton.Position = UDim2.new(0, 20, 0, 130)
 throwTargetButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 throwTargetButton.Text = "Throw Target"
@@ -237,6 +272,9 @@ throwTargetStroke.Color = Color3.fromRGB(100, 100, 100)
 throwTargetStroke.Thickness = 1
 throwTargetStroke.Parent = throwTargetButton
 
+-- Keybind Button for Throw Target
+local throwTargetKeybindButton = createKeybindButton(mainFrame, UDim2.new(0, 230, 0, 130), "ThrowTarget")
+
 throwTargetButton.MouseButton1Click:Connect(function()
     if currentTarget then
         throwPlayer(currentTarget)
@@ -245,7 +283,7 @@ end)
 
 -- Button 3: Remove ESP (No Assassin/Troll)
 local removeEspButton = Instance.new("TextButton")
-removeEspButton.Size = UDim2.new(0, 260, 0, 50)
+removeEspButton.Size = UDim2.new(0, 200, 0, 50)
 removeEspButton.Position = UDim2.new(0, 20, 0, 190)
 removeEspButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 removeEspButton.Text = "No Assassin/Troll"
@@ -262,5 +300,27 @@ removeEspStroke.Thickness = 1
 removeEspStroke.Parent = removeEspButton
 
 removeEspButton.MouseButton1Click:Connect(function()
-    setTarget(nil) -- Clear the target and remove ESP
+    setTarget(nil)
+end)
+
+-- Keybind Input Handling
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.Keyboard and settingKeybind then
+        keybinds[settingKeybind] = input.KeyCode
+        if settingKeybind == "ThrowAll" then
+            throwAllKeybindButton.Text = input.KeyCode.Name
+        elseif settingKeybind == "ThrowTarget" then
+            throwTargetKeybindButton.Text = input.KeyCode.Name
+        end
+        settingKeybind = nil
+    elseif input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.KeyCode == keybinds.ThrowAll then
+            for _, player in pairs(Players:GetPlayers()) do
+                throwPlayer(player)
+            end
+        elseif input.KeyCode == keybinds.ThrowTarget and currentTarget then
+            throwPlayer(currentTarget)
+        end
+    end
 end)
