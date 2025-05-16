@@ -1,0 +1,620 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "RakOOF Kill Test",
+    Icon = 0,
+    LoadingTitle = "Loading RakOOF Kill Test",
+    LoadingSubtitle = "by Kaique",
+    Theme = "Green",
+    ConfigurationSaving = {
+        Enabled = false,
+        FolderName = nil,
+        FileName = "RakOOF_Kill_Test"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "noinvitelink",
+        RememberJoins = true
+    },
+    KeySystem = true,
+    KeySettings = {
+        Title = "Kaique",
+        Subtitle = "Key System",
+        Note = "Adquira no meu Discord a Key",
+        FileName = "Rayfield Key",
+        SaveKey = false,
+        GrabKeyFromSite = false,
+        Key = {"RakOOFv3","HackK","adminK"}
+    }
+})
+
+local CheatsTab = Window:CreateTab("Cheats", 4483362458) -- Adiciona a aba Cheats
+
+CheatsTab:CreateInput({
+    Name = "Set Points",
+    CurrentValue = "",
+    PlaceholderText = "Enter the number of points",
+    RemoveTextAfterFocusLost = false,
+    Flag = "SetPoints",
+    Callback = function(Value)
+        local A_1 = "Points"
+        local A_2 = tonumber(Value) -- Converte o valor do TextBox para número
+        local A_3 = "Kills"
+        local A_4 = 0 -- Define Kills como 0
+        local A_5 = "Reward"
+        local A_6 = 0 -- Define Reward como 0
+        local Event = game:GetService("Players").LocalPlayer.PlayerGui.RewardUI.GiveStats
+        Event:FireServer(A_1, A_2, A_3, A_4, A_5, A_6)
+    end
+})
+
+CheatsTab:CreateInput({
+    Name = "Set Kills",
+    CurrentValue = "",
+    PlaceholderText = "Enter the number of kills",
+    RemoveTextAfterFocusLost = false,
+    Flag = "SetKills",
+    Callback = function(Value)
+        local A_1 = "Kills"
+        local A_2 = tonumber(Value) -- Converte o valor do TextBox para número
+        local A_3 = "Points"
+        local A_4 = 0 -- Define Points como 0
+        local A_5 = "Reward"
+        local A_6 = 0 -- Define Reward como 0
+        local Event = game:GetService("Players").LocalPlayer.PlayerGui.RewardUI.GiveStats
+        Event:FireServer(A_1, A_2, A_3, A_4, A_5, A_6)
+    end
+})
+
+CheatsTab:CreateButton({
+    Name = "Show Hour",
+    Callback = function()
+        local function updateHourDisplay()
+            local rake = workspace:FindFirstChild("The_Rake")
+            if rake then
+                local hour = rake:FindFirstChild("HourSelected")
+                if hour then
+                    local billboard = rake.Head:FindFirstChild("HourDisplay")
+                    if not billboard then
+                        billboard = Instance.new("BillboardGui", rake.Head)
+                        billboard.Name = "HourDisplay"
+                        billboard.Size = UDim2.new(0, 200, 0, 50)
+                        billboard.StudsOffset = Vector3.new(0, 3, 0)
+                        billboard.AlwaysOnTop = true
+
+                        local textLabel = Instance.new("TextLabel", billboard)
+                        textLabel.Size = UDim2.new(1, 0, 1, 0)
+                        textLabel.BackgroundTransparency = 1
+                        textLabel.TextColor3 = Color3.fromRGB(50, 205, 50) -- Verde limão
+                        textLabel.TextStrokeTransparency = 0
+                        textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- Preto para o outline
+                        textLabel.TextStrokeThickness = 2
+                        textLabel.Font = Enum.Font.SourceSansBold
+                        textLabel.TextScaled = true
+                        textLabel.Text = "RakOOF/Hour: " .. hour.Value
+                    else
+                        billboard.TextLabel.Text = "RakOOF/Hour: " .. hour.Value
+                    end
+                end
+            end
+        end
+
+        game:GetService("RunService").RenderStepped:Connect(updateHourDisplay)
+    end
+})
+
+CheatsTab:CreateButton({
+    Name = "Killaura",
+    Callback = function()
+        -- KillAura script adapted for The Rake: Remastered
+        local connections = getgenv().configs and getgenv().configs.connection
+        if connections then
+            local Disable = configs.Disable
+            for i, v in pairs(connections) do
+                v:Disconnect() 
+            end
+            Disable:Fire()
+            Disable:Destroy()
+            table.clear(configs)
+        end
+
+        local Disable = Instance.new("BindableEvent")
+        getgenv().configs = {
+            connections = {},
+            Disable = Disable,
+            Size = Vector3.new(30, 30, 30),
+            DeathCheck = true
+        }
+
+        local Players = cloneref(game:GetService("Players"))
+        local RunService = cloneref(game:GetService("RunService"))
+        local lp = Players.LocalPlayer
+        local Run = true
+        local Ignorelist = OverlapParams.new()
+        Ignorelist.FilterType = Enum.RaycastFilterType.Include
+
+        local function getchar(plr)
+            local plr = plr or lp
+            return plr.Character
+        end
+
+        local function gethumanoid(plr)
+            local char = plr:IsA("Model") and plr or getchar(plr)
+            if char then
+                return char:FindFirstChildWhichIsA("Humanoid")
+            end
+        end
+
+        local function IsAlive(Humanoid)
+            return Humanoid and Humanoid.Health > 0
+        end
+
+        local function GetTouchInterest(Tool)
+            return Tool and Tool:FindFirstChildWhichIsA("TouchTransmitter", true)
+        end
+
+        local function Attack(Tool, TouchPart, ToTouch)
+            if Tool:IsDescendantOf(workspace) then
+                Tool:Activate()
+                firetouchinterest(TouchPart, ToTouch, 1)
+                firetouchinterest(TouchPart, ToTouch, 0)
+            end
+        end
+
+        table.insert(getgenv().configs.connections, Disable.Event:Connect(function()
+            Run = false
+        end))
+
+        while Run do
+            local char = getchar()
+            if IsAlive(gethumanoid(char)) then
+                local Tool = char and char:FindFirstChildWhichIsA("Tool")
+                local TouchInterest = Tool and GetTouchInterest(Tool)
+
+                if TouchInterest then
+                    local TouchPart = TouchInterest.Parent
+                    local The_Rake = workspace:FindFirstChild("The_Rake")
+
+                    if The_Rake and The_Rake:FindFirstChild("Torso") and IsAlive(gethumanoid(The_Rake)) then
+                        Attack(Tool, TouchPart, The_Rake.Torso)
+                    end
+                end
+            end
+            RunService.Heartbeat:Wait()
+        end
+    end
+})
+
+CheatsTab:CreateToggle({
+    Name = "ShopUI",
+    CurrentValue = false,
+    Flag = "ShopUI",
+    Callback = function(Value)
+        local shopUI = game:GetService("Players").LocalPlayer.PlayerGui.ShopSystem.MainFrame
+        if Value then
+            shopUI.Position = UDim2.new(0, 0, 0, 0)
+        else
+            shopUI.Position = UDim2.new(0, 0, 1.1, 0)
+        end
+    end
+})
+
+CheatsTab:CreateButton({
+    Name = "All Badges",
+    Callback = function()
+        local badges = {
+            2485593698186479, -- FinalHour
+            2031177197967686, -- RetroHour
+            4357336029194072, -- YourNightmare
+            2300989549220625, -- GlitchHour
+            985165976566049,  -- PureCarnage
+            161534954731953,  -- EvolutionMode
+            53501672285381,   -- EthereumAscension
+            4237767926069032, -- CLOWN
+            2339921554794244, -- TotalCorruption
+            1247616033130812, -- Tiky
+            4490759576043827, -- UpgradeRakoof
+            4323157118909771, -- XD
+            1306585909960112, -- BloodHour
+            1316195524468825, -- NightmareHour
+            2556797099736848, -- CheeseHour
+            3856867473236408, -- MexicanHour
+            815975995567886,  -- Rage
+            467913170491767,  -- CorruptedHour
+            2205617200164435, -- ShadowHour
+            892241480123352,  -- TotalInsanity
+            1558490347690354, -- Catastrophe
+            2228502143815140, -- Desolation
+            2871029134562237, -- UNHINGED
+            340169182793381,  -- UNHINGEDII
+            747217344118615,  -- SUS
+            2010059633049544, -- TheEvolutionProtocol
+            418223658283699,  -- ProtocolOverdrive
+        }
+
+        local Event = game:GetService("Players").LocalPlayer.PlayerGui.RewardUI.GiveStats
+
+        for _, badgeId in ipairs(badges) do
+            pcall(function()
+                Event:FireServer(badgeId, 0, "nil", 0, "Badge")
+                task.wait(0.1)
+            end)
+        end
+    end,
+})
+
+local guiAtivo = false
+local customGui
+
+CheatsTab:CreateToggle({
+    Name = "Comprar MutantLiquid (GUI)",
+    CurrentValue = false,
+    Callback = function(Value)
+        guiAtivo = Value
+
+        if guiAtivo then
+            -- Serviços
+            local Players = game:GetService("Players")
+            local TweenService = game:GetService("TweenService")
+            local UserInputService = game:GetService("UserInputService")
+            local player = Players.LocalPlayer
+            local playerGui = player:FindFirstChild("PlayerGui")
+
+            -- Criar GUI
+            customGui = Instance.new("ScreenGui")
+            customGui.Name = "CustomShopGui"
+            customGui.IgnoreGuiInset = true
+            customGui.Parent = playerGui
+
+            -- Frame principal
+            local mainFrame = Instance.new("Frame")
+            mainFrame.Size = UDim2.new(0, 240, 0, 100)
+            mainFrame.Position = UDim2.new(0.5, -120, 0.5, -50)
+            mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+            mainFrame.BorderSizePixel = 0
+            mainFrame.ClipsDescendants = true
+            mainFrame.Parent = customGui
+
+            Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+
+            local gradient = Instance.new("UIGradient", mainFrame)
+            gradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 60)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 30, 35))
+            })
+            gradient.Rotation = 45
+
+            local stroke = Instance.new("UIStroke", mainFrame)
+            stroke.Thickness = 2
+            stroke.Color = Color3.fromRGB(100, 100, 120)
+            stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+            -- Toggle visual
+            local toggleFrame = Instance.new("Frame", mainFrame)
+            toggleFrame.Size = UDim2.new(0, 200, 0, 50)
+            toggleFrame.Position = UDim2.new(0.5, -100, 0.5, -25)
+            toggleFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+            Instance.new("UICorner", toggleFrame).CornerRadius = UDim.new(0, 8)
+            Instance.new("UIStroke", toggleFrame).Color = Color3.fromRGB(120, 120, 140)
+
+            local toggleIndicator = Instance.new("Frame", toggleFrame)
+            toggleIndicator.Size = UDim2.new(0, 30, 0, 30)
+            toggleIndicator.Position = UDim2.new(0, 10, 0.5, -15)
+            toggleIndicator.BackgroundColor3 = Color3.fromRGB(100, 100, 110)
+            Instance.new("UICorner", toggleIndicator).CornerRadius = UDim.new(0, 15)
+
+            local toggleLabel = Instance.new("TextLabel", toggleFrame)
+            toggleLabel.Size = UDim2.new(1, -50, 1, 0)
+            toggleLabel.Position = UDim2.new(0, 50, 0, 0)
+            toggleLabel.BackgroundTransparency = 1
+            toggleLabel.Text = "Comprar MutantLiquid"
+            toggleLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
+            toggleLabel.TextSize = 18
+            toggleLabel.Font = Enum.Font.GothamSemibold
+            toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+            local isToggled = false
+
+            local function updateToggle()
+                local pos = isToggled and UDim2.new(1, -40, 0.5, -15) or UDim2.new(0, 10, 0.5, -15)
+                local cor = isToggled and Color3.fromRGB(80, 200, 120) or Color3.fromRGB(100, 100, 110)
+                TweenService:Create(toggleIndicator, TweenInfo.new(0.2), {Position = pos, BackgroundColor3 = cor}):Play()
+                TweenService:Create(toggleFrame, TweenInfo.new(0.2), {
+                    BackgroundColor3 = isToggled and Color3.fromRGB(80, 80, 90) or Color3.fromRGB(60, 60, 70)
+                }):Play()
+            end
+
+            toggleFrame.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    isToggled = not isToggled
+                    updateToggle()
+                    if isToggled then
+                        local Event = playerGui.ShopSystem.BuyingFunction
+                        Event:InvokeServer("Buy", "MutantLiquid")
+                    end
+                end
+            end)
+
+            -- Arrastar a GUI
+            local dragging, dragStart, startPos = false, nil, nil
+            mainFrame.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    dragStart = input.Position
+                    startPos = mainFrame.Position
+                end
+            end)
+            mainFrame.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = false
+                end
+            end)
+            UserInputService.InputChanged:Connect(function(input)
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    local delta = input.Position - dragStart
+                    TweenService:Create(mainFrame, TweenInfo.new(0.1), {
+                        Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+                    }):Play()
+                end
+            end)
+        elseif customGui then
+            customGui:Destroy()
+        end
+    end
+})
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+local autoHealYou = false
+local autoHealAll = false
+
+-- Função que ativa/desativa a cura automática do próprio jogador
+CheatsTab:CreateToggle({
+    Name = "Auto self heal you",
+    CurrentValue = false,
+    Callback = function(Value)
+        autoHealYou = Value
+
+        task.spawn(function()
+            while autoHealYou and task.wait() do
+                local humanoid = workspace:FindFirstChild(LocalPlayer.Name)
+                if humanoid and humanoid:FindFirstChild("Humanoid") then
+                    local Event = LocalPlayer.Backpack:WaitForChild("MedicGun"):WaitForChild("GunScript_Server"):WaitForChild("InflictTarget")
+                    Event:FireServer(humanoid.Humanoid, true, 300000, 0, 0, false)
+                end
+            end
+        end)
+    end,
+})
+
+-- Função que ativa/desativa a cura automática de todos os jogadores (inclusive os que entrarem depois)
+CheatsTab:CreateToggle({
+    Name = "Auto self heal all",
+    CurrentValue = false,
+    Callback = function(Value)
+        autoHealAll = Value
+
+        task.spawn(function()
+            while autoHealAll and task.wait() do
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    local humanoid = workspace:FindFirstChild(plr.Name)
+                    if humanoid and humanoid:FindFirstChild("Humanoid") then
+                        local Event = LocalPlayer.Backpack:WaitForChild("MedicGun"):WaitForChild("GunScript_Server"):WaitForChild("InflictTarget")
+                        Event:FireServer(humanoid.Humanoid, true, 300000, 0, 0, false)
+                    end
+                end
+            end
+        end)
+    end,
+})
+
+CheatsTab:CreateButton({
+    Name = "INSTAKill RAKOOF (Require Medicgun)",
+    Callback = function()
+        local LocalPlayer = game:GetService("Players").LocalPlayer
+        local target = workspace:FindFirstChild("The_Rake")
+        if target and target:FindFirstChild("NPC") then
+            local Event = LocalPlayer.Backpack:WaitForChild("MedicGun"):WaitForChild("GunScript_Server"):WaitForChild("InflictTarget")
+            Event:FireServer(target.NPC, true, "inf", 0, 0, false)
+        end
+    end,
+})
+
+local HealValue = -30 -- valor padrão negativo
+
+-- Caixa de texto para o usuário inserir a quantidade
+CheatsTab:CreateInput({
+    Name = "Valor de Cura do RAKOOF",
+    PlaceholderText = "Digite um número (ex: 200)",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        local num = tonumber(Text)
+        if num then
+            HealValue = -math.abs(num) -- sempre negativo
+        end
+    end,
+})
+
+-- Botão para aplicar o valor inserido no RAKOOF
+CheatsTab:CreateButton({
+    Name = "Heal RAKOOF (Require Medicgun)",
+    Callback = function()
+        local LocalPlayer = game:GetService("Players").LocalPlayer
+        local target = workspace:FindFirstChild("The_Rake")
+        if target and target:FindFirstChild("NPC") then
+            local Event = LocalPlayer.Backpack:WaitForChild("MedicGun"):WaitForChild("GunScript_Server"):WaitForChild("InflictTarget")
+            Event:FireServer(target.NPC, true, HealValue, 0, 0, false)
+        end
+    end,
+})
+
+local loopAtivo = false
+
+CheatsTab:CreateToggle({
+    Name = "Stamina Infinite",
+    CurrentValue = false,
+    Callback = function(Value)
+        loopAtivo = Value
+        if loopAtivo then
+            task.spawn(function()
+                while loopAtivo do
+                    pcall(function()
+                        game:GetService("Players").LocalPlayer.PlayerGui.StaminaV2.Stamina.CurrentStamina.Value = 100
+                    end)
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end,
+})
+
+
+-- Variável de controle do loop
+local rodando = false
+
+-- Função: Comprar C4 (Check + Buy)
+local function loopComprarC4()
+   local Player = game:GetService("Players").LocalPlayer
+   local Event = Player.PlayerGui.ShopSystem.BuyingFunction
+
+   Event:InvokeServer("Check", "C4")
+   task.wait(0.1)
+   Event:InvokeServer("Buy", "C4")
+end
+
+-- Função: Usar automaticamente a C4 ao receber no inventário
+local function autoUsarC4()
+   local Player = game:GetService("Players").LocalPlayer
+   local Backpack = Player:WaitForChild("Backpack")
+   local Character = Player.Character or Player.CharacterAdded:Wait()
+
+   local function usar()
+      for _, item in pairs(Backpack:GetChildren()) do
+         if item.Name == "C4" then
+            item.Parent = Character
+            task.wait(0.1)
+            local tool = Character:FindFirstChild("C4")
+            if tool and tool:FindFirstChild("Activate") then
+               tool:Activate()
+            end
+         end
+      end
+   end
+
+   usar()
+
+   Backpack.ChildAdded:Connect(function(child)
+      if rodando and child.Name == "C4" then
+         task.wait(0.1)
+         usar()
+      end
+   end)
+end
+
+-- Toggle Rayfield
+CheatsTab:CreateToggle({
+   Name = "Auto C4 (Comprar + Usar)",
+   CurrentValue = false,
+   Flag = "AutoC4",
+   Callback = function(Value)
+      rodando = Value
+      if rodando then
+         autoUsarC4()
+         task.spawn(function()
+            while rodando do
+               loopComprarC4()
+               task.wait(0.1)
+            end
+         end)
+      end
+   end,
+})
+
+CheatsTab:CreateToggle({
+    Name = "ATTACK HACKING",
+    CurrentValue = false,
+    Callback = function(Value)
+        autohacking = Value
+
+        task.spawn(function()
+            while autohacking and task.wait() do
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    local humanoid = workspace:FindFirstChild(plr.Name)
+                    if humanoid and humanoid:FindFirstChild("Humanoid") then
+                        local Event = LocalPlayer.Backpack:WaitForChild("MedicGun"):WaitForChild("GunScript_Server"):WaitForChild("InflictTarget")
+                        Event:FireServer(humanoid.Humanoid, true, -300000, 0, 0, false)
+                    end
+                end
+            end
+        end)
+    end,
+})
+
+CheatsTab:CreateToggle({
+    Name = "Auto self heal all (Require AssaultRifle)",
+    CurrentValue = false,
+    Callback = function(Value)
+        autoHealAllr = Value
+
+        task.spawn(function()
+            while autoHealAllr and task.wait() do
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    local humanoid = workspace:FindFirstChild(plr.Name)
+                    if humanoid and humanoid:FindFirstChild("Humanoid") then
+                        local Event = LocalPlayer.Backpack:WaitForChild("AssaultRifle"):WaitForChild("GunScript_Server"):WaitForChild("InflictTarget")
+                        Event:FireServer(humanoid.Humanoid, true, -300000, 0, 0, false)
+                    end
+                end
+            end
+        end)
+    end,
+})
+
+CheatsTab:CreateToggle({
+    Name = "Auto self heal you (Require AssaultRifle)",
+    CurrentValue = false,
+    Callback = function(Value)
+        autoHealYour = Value
+
+        task.spawn(function()
+            while autoHealYour and task.wait() do
+                local humanoid = workspace:FindFirstChild(LocalPlayer.Name)
+                if humanoid and humanoid:FindFirstChild("Humanoid") then
+                    local Event = LocalPlayer.Backpack:WaitForChild("AssaultRifle"):WaitForChild("GunScript_Server"):WaitForChild("InflictTarget")
+                    Event:FireServer(humanoid.Humanoid, true, -300000, 0, 0, false)
+                end
+            end
+        end)
+    end,
+})
+
+CheatsTab:CreateToggle({
+    Name = "Auto Heal Summoner",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            -- Start the auto-heal loop when toggle is enabled
+            spawn(function()
+                while Value do -- Loop continues as long as toggle is on
+                    -- Ensure the summoner exists and the player has the AssaultRifle
+                    local Summoner = game:GetService("Workspace"):FindFirstChild(SummonerName)
+                    local AssaultRifle = Player.Backpack:FindFirstChild("AssaultRifle")
+                    if Summoner and AssaultRifle then
+                        local Humanoid = Summoner:FindFirstChild("Humanoid")
+                        if Humanoid then
+                            -- Fire the server event to heal
+                            local Event = AssaultRifle:FindFirstChild("GunScript_Server").InflictTarget
+                            Event:FireServer(Humanoid, true, -6000, 0, 0, false)
+                        end
+                    end
+                    wait(0.1) -- Small delay to prevent excessive server calls
+                end
+            end)
+        end
+        -- No need for an else block; loop stops when Value is false
+    end,
+})
+
+Rayfield:LoadConfiguration()
