@@ -1,0 +1,263 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+-- Criar interface principal
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "FuturisticUI"
+ScreenGui.ResetOnSpawn = false
+
+-- Botão flutuante para abrir/fechar
+local OpenCloseButton = Instance.new("TextButton", ScreenGui)
+OpenCloseButton.Size = UDim2.new(0, 40, 0, 40)
+OpenCloseButton.Position = UDim2.new(0, 10, 0.5, -20)
+OpenCloseButton.Text = "≡"
+OpenCloseButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+OpenCloseButton.TextColor3 = Color3.new(1, 1, 1)
+OpenCloseButton.BorderSizePixel = 0
+OpenCloseButton.AutoButtonColor = true
+OpenCloseButton.BackgroundTransparency = 0.3
+OpenCloseButton.ZIndex = 10
+OpenCloseButton.Active = true
+OpenCloseButton.Draggable = true
+
+-- Janela principal
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 420, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -210, 0.5, -150)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BackgroundTransparency = 0.1
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+-- Gradient e bordas arredondadas
+local uiCorner = Instance.new("UICorner", MainFrame)
+uiCorner.CornerRadius = UDim.new(0, 14)
+local uiGradient = Instance.new("UIGradient", MainFrame)
+uiGradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 170)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 85, 255))
+}
+uiGradient.Rotation = 45
+
+-- Título
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "Futuristic Control Panel"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+
+-- Scroll frame
+local Scroll = Instance.new("ScrollingFrame", MainFrame)
+Scroll.Size = UDim2.new(1, -20, 1, -50)
+Scroll.Position = UDim2.new(0, 10, 0, 40)
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 300)
+Scroll.ScrollBarThickness = 4
+Scroll.BackgroundTransparency = 0.3
+Scroll.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Scroll.BorderSizePixel = 0
+Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+
+local UIList = Instance.new("UIListLayout", Scroll)
+UIList.Padding = UDim.new(0, 10)
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Botão Toggle TP Tween
+local TpTweenToggle = Instance.new("TextButton", Scroll)
+TpTweenToggle.Size = UDim2.new(1, -20, 0, 40)
+TpTweenToggle.Text = "TP Tween [OFF]"
+TpTweenToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TpTweenToggle.TextColor3 = Color3.fromRGB(0, 255, 170)
+TpTweenToggle.Font = Enum.Font.Gotham
+TpTweenToggle.TextSize = 14
+Instance.new("UICorner", TpTweenToggle)
+
+-- Slider para TP Tween Speed
+local SliderFrame = Instance.new("Frame", Scroll)
+SliderFrame.Size = UDim2.new(1, -20, 0, 40)
+SliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SliderFrame.BorderSizePixel = 0
+Instance.new("UICorner", SliderFrame)
+
+local SliderBar = Instance.new("Frame", SliderFrame)
+SliderBar.Size = UDim2.new(1, -60, 0, 6)
+SliderBar.Position = UDim2.new(0, 10, 0.5, -3)
+SliderBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Instance.new("UICorner", SliderBar)
+
+local SliderHandle = Instance.new("Frame", SliderBar)
+SliderHandle.Size = UDim2.new(0, 20, 0, 20)
+SliderHandle.Position = UDim2.new(0, 0, -1.5, 0)
+SliderHandle.BackgroundColor3 = Color3.fromRGB(0, 255, 170)
+SliderHandle.BorderSizePixel = 0
+Instance.new("UICorner", SliderHandle)
+
+local SliderLabel = Instance.new("TextLabel", SliderFrame)
+SliderLabel.Size = UDim2.new(0, 40, 1, 0)
+SliderLabel.Position = UDim2.new(1, -50, 0, 0)
+SliderLabel.Text = "0.1"
+SliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SliderLabel.BackgroundTransparency = 1
+SliderLabel.Font = Enum.Font.Gotham
+SliderLabel.TextSize = 14
+
+-- Botões de incremento e decremento
+local DecreaseButton = Instance.new("TextButton", SliderFrame)
+DecreaseButton.Size = UDim2.new(0, 20, 0, 20)
+DecreaseButton.Position = UDim2.new(0, 10, 0.5, -10)
+DecreaseButton.Text = "-"
+DecreaseButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+DecreaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+DecreaseButton.Font = Enum.Font.GothamBold
+DecreaseButton.TextSize = 14
+Instance.new("UICorner", DecreaseButton)
+
+local IncreaseButton = Instance.new("TextButton", SliderFrame)
+IncreaseButton.Size = UDim2.new(0, 20, 0, 20)
+IncreaseButton.Position = UDim2.new(0, 40, 0.5, -10)
+IncreaseButton.Text = "+"
+IncreaseButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+IncreaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+IncreaseButton.Font = Enum.Font.GothamBold
+IncreaseButton.TextSize = 14
+Instance.new("UICorner", IncreaseButton)
+
+-- ESP Bomb Toggle
+local EspBombToggle = Instance.new("TextButton", Scroll)
+EspBombToggle.Size = UDim2.new(1, -20, 0, 40)
+EspBombToggle.Text = "ESP Bomb [OFF]"
+EspBombToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+EspBombToggle.TextColor3 = Color3.fromRGB(255, 170, 0)
+EspBombToggle.Font = Enum.Font.Gotham
+EspBombToggle.TextSize = 14
+Instance.new("UICorner", EspBombToggle)
+
+-- Alternar visibilidade da interface
+OpenCloseButton.MouseButton1Click:Connect(function()
+	MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- TP Tween lógica
+local tpTweenEnabled = false
+local tpTweenSpeed = 0.1 -- Valor inicial do slider
+
+TpTweenToggle.MouseButton1Click:Connect(function()
+	tpTweenEnabled = not tpTweenEnabled
+	TpTweenToggle.Text = "TP Tween ["..(tpTweenEnabled and "ON" or "OFF").."]"
+end)
+
+-- Função para atualizar a velocidade do TP Tween com base na posição do slider
+local function updateSlider(t)
+	t = math.clamp(t, 0, 1) -- Garante que t está entre 0 e 1
+	SliderHandle.Position = UDim2.new(t, 0, -1.5, 0)
+	tpTweenSpeed = 0.1 + (2 - 0.1) * t -- Mapeia de 0.1 a 2
+	SliderLabel.Text = string.format("%.1f", tpTweenSpeed)
+end
+
+-- Lógica do slider para mouse e toque
+local dragging = false
+
+SliderHandle.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		local barWidth = SliderBar.AbsoluteSize.X
+		local handleWidth = SliderHandle.AbsoluteSize.X
+		local minX = SliderBar.AbsolutePosition.X
+		local maxX = minX + barWidth - handleWidth
+		local t = (input.Position.X - minX) / (maxX - minX)
+		updateSlider(t)
+	end
+end)
+
+SliderHandle.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local barWidth = SliderBar.AbsoluteSize.X
+		local handleWidth = SliderHandle.AbsoluteSize.X
+		local minX = SliderBar.AbsolutePosition.X
+		local maxX = minX + barWidth - handleWidth
+		local t = (input.Position.X - minX) / (maxX - minX)
+		updateSlider(t)
+	end
+end)
+
+-- Lógica dos botões de incremento e decremento
+local step = 0.1 -- Incremento/decremento de 0.1
+DecreaseButton.MouseButton1Click:Connect(function()
+	local currentT = (tpTweenSpeed - 0.1) / (2 - 0.1)
+	updateSlider(math.max(0, currentT - step / (2 - 0.1)))
+end)
+
+IncreaseButton.MouseButton1Click:Connect(function()
+	local currentT = (tpTweenSpeed - 0.1) / (2 - 0.1)
+	updateSlider(math.min(1, currentT + step / (2 - 0.1)))
+end)
+
+RunService.Heartbeat:Connect(function()
+	if not tpTweenEnabled then return end
+	local char = LocalPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then return end
+
+	local humanoid = char.Humanoid
+	local hrp = char.HumanoidRootPart
+
+	-- Detectar movimento horizontal e aplicar TP
+	if humanoid.MoveDirection.Magnitude > 0.1 and humanoid:GetState() == Enum.HumanoidStateType.Running then
+		local moveDir = humanoid.MoveDirection
+		local dir = Vector3.new(moveDir.X, 0, moveDir.Z)
+		if dir.Magnitude > 0 then
+			local newPos = hrp.Position + dir.Unit * tpTweenSpeed
+			hrp.CFrame = CFrame.new(newPos, newPos + hrp.CFrame.LookVector)
+		end
+	end
+end)
+
+-- ESP Bomb lógica
+local espEnabled = false
+EspBombToggle.MouseButton1Click:Connect(function()
+	espEnabled = not espEnabled
+	EspBombToggle.Text = "ESP Bomb ["..(espEnabled and "ON" or "OFF").."]"
+
+	if espEnabled then
+		for _, player in ipairs(Players:GetPlayers()) do
+			local function checkForBomb()
+				if workspace:FindFirstChild("Characters") then
+					local char = workspace.Characters:FindFirstChild(player.Name)
+					if char and char:FindFirstChild("Bomb") and not char:FindFirstChild("ESP_Bomb") then
+						local billboard = Instance.new("BillboardGui", char)
+						billboard.Name = "ESP_Bomb"
+						billboard.Size = UDim2.new(0, 100, 0, 30)
+						billboard.Adornee = char.Bomb
+						billboard.AlwaysOnTop = true
+
+						local label = Instance.new("TextLabel", billboard)
+						label.Size = UDim2.new(1, 0, 1, 0)
+						label.Text = "BOMBA"
+						label.TextColor3 = Color3.fromRGB(255, 0, 0)
+						label.BackgroundTransparency = 1
+						label.Font = Enum.Font.GothamBlack
+						label.TextScaled = true
+					end
+				end
+			end
+
+			checkForBomb()
+			player.CharacterAdded:Connect(function()
+				wait(1)
+				checkForBomb()
+			end)
+		end
+	end
+end)
