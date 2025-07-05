@@ -1,0 +1,555 @@
+-- Attempt to load Rayfield UI Library with error handling
+local success, Rayfield = pcall(function()
+    return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+end)
+
+if not success or not Rayfield then
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Error",
+        Text = "Failed to load Rayfield UI Library. Check your network or the URL.",
+        Duration = 5
+    })
+    return
+end
+
+-- Create the main window
+local Window = Rayfield:CreateWindow({
+    Name = "99 Nights in forest",
+    LoadingTitle = "Loading UI...",
+    LoadingSubtitle = "by Kaique",
+    ConfigurationSaving = {
+        Enabled = false,
+        FolderName = nil, -- Create a custom folder for your config
+        FileName = "Config"
+    }
+})
+
+-- Create Tabs
+local MainTab = Window:CreateTab("Main", 4483362458) -- Main Tab
+local TpResourcesTab = Window:CreateTab("Tp Resources", 4483362458) -- Tp Resources Tab
+local VisualsTab = Window:CreateTab("Visuals", 4483362458) -- Visuals Tab
+
+-- Services
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+-- === Main Tab ===
+-- Kill Aura Toggle
+local killAuraConnection
+MainTab:CreateToggle({
+    Name = "Kill Aura",
+    Info = "Attacks all NPCs in workspace.Characters using the equipped tool.",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            killAuraConnection = RunService.Heartbeat:Connect(function()
+                local character = LocalPlayer.Character
+                if not character then return end
+
+                -- Find the currently equipped tool
+                local tool = character:FindFirstChildWhichIsA("Tool")
+                if not tool then return end
+
+                -- Get the ToolDamageObject remote event
+                local toolDamageEvent = ReplicatedStorage:FindFirstChild("RemoteEvents") and ReplicatedStorage.RemoteEvents:FindFirstChild("ToolDamageObject")
+                if not toolDamageEvent then return end
+
+                -- Get the player's CFrame for the attack position
+                local playerCFrame = character:GetPivot()
+
+                -- Iterate through all NPCs in workspace.Characters
+                for _, npc in pairs(Workspace.Characters:GetChildren()) do
+                    if npc:IsA("Model") and npc:FindFirstChildOfClass("Humanoid") and npc:FindFirstChildOfClass("Humanoid").Health > 0 then
+                        -- Invoke the ToolDamageObject event with all parameters
+                        pcall(function()
+                            toolDamageEvent:InvokeServer(npc, tool, "5_8680620284", playerCFrame)
+                        end)
+                    end
+                end
+                wait(0.1) -- Add slight delay to prevent performance issues
+            end)
+        else
+            if killAuraConnection then
+                killAuraConnection:Disconnect()
+            end
+        end
+    end
+})
+
+-- Fire Proximity Button (Activates ProximityInteraction for all Lost Child instances)
+MainTab:CreateButton({
+    Name = "Fire Proximity",
+    Info = "Instantly activates ProximityInteraction for all Lost Child instances in Characters folder.",
+    Callback = function()
+        local count = 0
+        for _, child in pairs(Workspace.Characters:GetChildren()) do
+            if child.Name:match("Lost Child") and child:FindFirstChild("Head") and child.Head:FindFirstChild("ProximityAttachment") and child.Head.ProximityAttachment:FindFirstChild("ProximityInteraction") then
+                fireproximityprompt(child.Head.ProximityAttachment.ProximityInteraction)
+                count = count + 1
+            end
+        end
+        Rayfield:Notify({
+            Title = "Proximity Fired",
+            Content = "Activated ProximityInteraction for " .. count .. " Lost Child instances.",
+            Duration = 3
+        })
+    end
+})
+
+-- InstaProximityPrompt Toggle (Sets HoldDuration to 0 and MaxActivationDistance to 10 for all Item Chests)
+local proximityConnection
+MainTab:CreateToggle({
+    Name = "InstaProximityPrompt",
+    Info = "Sets HoldDuration to 0 and range to 10 for all ProximityPrompts in Items folder.",
+    CurrentValue = false,
+    Callback = function(Value)
+        local function updateProximityPrompts()
+            for _, item in pairs(Workspace.Items:GetChildren()) do
+                if item.Name:match("Item Chest") and item:FindFirstChild("Main") and item.Main:FindFirstChild("ProximityAttachment") and item.Main.ProximityAttachment:FindFirstChild("ProximityInteraction") then
+                    item.Main.ProximityAttachment.ProximityInteraction.HoldDuration = Value and 0 or 1
+                    item.Main.ProximityAttachment.ProximityInteraction.MaxActivationDistance = Value and 10 or 6
+                end
+            end
+        end
+        if Value then
+            updateProximityPrompts()
+            proximityConnection = RunService.Heartbeat:Connect(updateProximityPrompts)
+        else
+            if proximityConnection then
+                proximityConnection:Disconnect()
+            end
+            updateProximityPrompts() -- Reset to default
+        end
+        Rayfield:Notify({
+            Title = Value and "InstaProximity Enabled" or "InstaProximity Disabled",
+            Content = Value and "Proximity prompts set to instant with range 10." or "Proximity prompts reset.",
+            Duration = 3
+        })
+    end
+})
+
+-- WalkSpeed Toggle and Slider
+local walkSpeedConnection
+local CurrentWalkSpeed = 16
+MainTab:CreateToggle({
+    Name = "WalkSpeed Boost",
+    Info = "Enables custom WalkSpeed for the player.",
+    CurrentValue = false,
+    Callback = function(Value)
+        local defaultSpeed = 16
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+        if not humanoid then
+            Rayfield:Notify({
+                Title = "Error",
+                Text = "Humanoid not found. Please ensure your character is loaded.",
+                Duration = 3
+            })
+            return
+        end
+        if not Value then
+            humanoid.WalkSpeed = defaultSpeed
+            if walkSpeedConnection then
+                walkSpeedConnection:Disconnect()
+            end
+        else
+            walkSpeedConnection = RunService.Heartbeat:Connect(function()
+                if humanoid.WalkSpeed ~= CurrentWalkSpeed then
+                    humanoid.WalkSpeed = CurrentWalkSpeed
+                end
+            end)
+        end
+        Rayfield:Notify({
+            Title = Value and "WalkSpeed Boost Enabled" or "WalkSpeed Boost Disabled",
+            Content = Value and "WalkSpeed set to custom value." or "WalkSpeed reset to default.",
+            Duration = 3
+        })
+    end
+})
+
+MainTab:CreateSlider({
+    Name = "WalkSpeed Value",
+    Info = "Set the player's WalkSpeed (16-200).",
+    Range = {16, 200},
+    Increment = 1,
+    CurrentValue = 16,
+    Callback = function(Value)
+        CurrentWalkSpeed = Value
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = Value
+        end
+    end
+})
+
+-- Hip Height Toggle and Slider
+local hipHeightConnection
+local CurrentHipHeight = 0
+MainTab:CreateToggle({
+    Name = "Hip Height Boost",
+    Info = "Enables custom Hip Height for the player.",
+    CurrentValue = false,
+    Callback = function(Value)
+        local defaultHeight = 0
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+        if not humanoid then
+            Rayfield:Notify({
+                Title = "Error",
+                Text = "Humanoid not found. Please ensure your character is loaded.",
+                Duration = 3
+            })
+            return
+        end
+        if not Value then
+            humanoid.HipHeight = defaultHeight
+            if hipHeightConnection then
+                hipHeightConnection:Disconnect()
+            end
+        else
+            hipHeightConnection = RunService.Heartbeat:Connect(function()
+                if humanoid.HipHeight ~= CurrentHipHeight then
+                    humanoid.HipHeight = CurrentHipHeight
+                end
+            end)
+        end
+        Rayfield:Notify({
+            Title = Value and "Hip Height Boost Enabled" or "Hip Height Boost Disabled",
+            Content = Value and "Hip Height set to custom value." or "Hip Height reset to default.",
+            Duration = 3
+        })
+    end
+})
+
+MainTab:CreateSlider({
+    Name = "Hip Height Value",
+    Info = "Set the player's Hip Height (0-20).",
+    Range = {0, 20},
+    Increment = 0.1,
+    CurrentValue = 0,
+    Callback = function(Value)
+        CurrentHipHeight = Value
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.HipHeight = Value
+        end
+    end
+})
+
+-- === Tp Resources Tab ===
+-- Crafting Section
+TpResourcesTab:CreateLabel("Crafting")
+
+local craftingItems = {"Broken Fan", "Broken Microwave", "Old Radio", "Sheet Metal", "Old Car Engine", "Washing Machine"}
+local selectedCraftingItems = {}
+TpResourcesTab:CreateDropdown({
+    Name = "Crafting Items",
+    Options = craftingItems,
+    CurrentOption = {},
+    MultipleOptions = true,
+    Callback = function(Options)
+        selectedCraftingItems = Options
+    end
+})
+
+local craftingConnection
+TpResourcesTab:CreateToggle({
+    Name = "Pull Crafting",
+    Info = "Pulls selected crafting items to the player's position.",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            craftingConnection = RunService.Heartbeat:Connect(function()
+                if not LocalPlayer.Character then return end
+                for _, itemName in pairs(selectedCraftingItems) do
+                    for _, item in pairs(Workspace.Items:GetChildren()) do
+                        if item.Name == itemName and (item:IsA("BasePart") or item:IsA("Model")) then
+                            item:PivotTo(LocalPlayer.Character:GetPivot())
+                        end
+                    end
+                end
+            end)
+        else
+            if craftingConnection then
+                craftingConnection:Disconnect()
+            end
+        end
+        Rayfield:Notify({
+            Title = Value and "Crafting Pull Enabled" or "Crafting Pull Disabled",
+            Content = Value and "Pulling selected crafting items." or "Stopped pulling crafting items.",
+            Duration = 3
+        })
+    end
+})
+
+-- Items Section
+TpResourcesTab:CreateLabel("Items")
+
+local itemsList = {"Alpha Wolf Pelt", "Wolf Pelt", "Bear Pelt", "Seed Box", "Cultist Gem", "Cultist Experiment", "Cultist", "Sapling", "Good Axe", "Strong Axe", "Strong Flashlight", "Giant Sack", "Bunny Foot", "Old Flashlight"}
+local selectedItems = {}
+TpResourcesTab:CreateDropdown({
+    Name = "Items",
+    Options = itemsList,
+    CurrentOption = {},
+    MultipleOptions = true,
+    Callback = function(Options)
+        selectedItems = Options
+    end
+})
+
+local itemsConnection
+TpResourcesTab:CreateToggle({
+    Name = "Pull Items",
+    Info = "Pulls selected items to the player's position.",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            itemsConnection = RunService.Heartbeat:Connect(function()
+                if not LocalPlayer.Character then return end
+                for _, itemName in pairs(selectedItems) do
+                    for _, item in pairs(Workspace.Items:GetChildren()) do
+                        if item.Name == itemName and (item:IsA("BasePart") or item:IsA("Model")) then
+                            item:PivotTo(LocalPlayer.Character:GetPivot())
+                        end
+                    end
+                end
+            end)
+        else
+            if itemsConnection then
+                itemsConnection:Disconnect()
+            end
+        end
+        Rayfield:Notify({
+            Title = Value and "Items Pull Enabled" or "Items Pull Disabled",
+            Content = Value and "Pulling selected items." or "Stopped pulling items.",
+            Duration = 3
+        })
+    end
+})
+
+-- Food Section
+TpResourcesTab:CreateLabel("Food")
+
+local foodItems = {"Carrot", "Apple", "Morsel", "Steak", "Cooked Morsel", "Cooked Steak", "Cake", "Berry"}
+local selectedFoodItems = {}
+TpResourcesTab:CreateDropdown({
+    Name = "Food Items",
+    Options = foodItems,
+    CurrentOption = {},
+    MultipleOptions = true,
+    Callback = function(Options)
+        selectedFoodItems = Options
+    end
+})
+
+local foodConnection
+TpResourcesTab:CreateToggle({
+    Name = "Pull Food",
+    Info = "Pulls selected food items to the player's position.",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            foodConnection = RunService.Heartbeat:Connect(function()
+                if not LocalPlayer.Character then return end
+                for _, itemName in pairs(selectedFoodItems) do
+                    for _, item in pairs(Workspace.Items:GetChildren()) do
+                        if item.Name == itemName and (item:IsA("BasePart") or item:IsA("Model")) then
+                            item:PivotTo(LocalPlayer.Character:GetPivot())
+                        end
+                    end
+                end
+            end)
+        else
+            if foodConnection then
+                foodConnection:Disconnect()
+            end
+        end
+        Rayfield:Notify({
+            Title = Value and "Food Pull Enabled" or "Food Pull Disabled",
+            Content = Value and "Pulling selected food items." or "Stopped pulling food items.",
+            Duration = 3
+        })
+    end
+})
+
+-- Armors and Guns Section
+TpResourcesTab:CreateLabel("Armors and Guns")
+
+local armorGunItems = {"Spear", "Leather Body", "Iron Body", "Rifle", "Rifle Ammo", "Revolver", "Revolver Ammo", "Defense Blueprint"}
+local selectedArmorGunItems = {}
+TpResourcesTab:CreateDropdown({
+    Name = "Armors and Guns",
+    Options = armorGunItems,
+    CurrentOption = {},
+    MultipleOptions = true,
+    Callback = function(Options)
+        selectedArmorGunItems = Options
+    end
+})
+
+local armorGunConnection
+TpResourcesTab:CreateToggle({
+    Name = "Pull Armors and Guns",
+    Info = "Pulls selected armors and guns to the player's position.",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            armorGunConnection = RunService.Heartbeat:Connect(function()
+                if not LocalPlayer.Character then return end
+                for _, itemName in pairs(selectedArmorGunItems) do
+                    for _, item in pairs(Workspace.Items:GetChildren()) do
+                        if item.Name == itemName and (item:IsA("BasePart") or item:IsA("Model")) then
+                            item:PivotTo(LocalPlayer.Character:GetPivot())
+                        end
+                    end
+                end
+            end)
+        else
+            if armorGunConnection then
+                armorGunConnection:Disconnect()
+            end
+        end
+        Rayfield:Notify({
+            Title = Value and "Armors and Guns Pull Enabled" or "Armors and Guns Pull Disabled",
+            Content = Value and "Pulling selected armors and guns." or "Stopped pulling armors and guns.",
+            Duration = 3
+        })
+    end
+})
+
+-- Fuel Section
+TpResourcesTab:CreateLabel("Fuel")
+
+local fuelItems = {"Log", "Coal", "Chair", "Fuel Canister", "Oil Barrel"}
+local selectedFuelItems = {}
+TpResourcesTab:CreateDropdown({
+    Name = "Fuel Items",
+    Options = fuelItems,
+    CurrentOption = {},
+    MultipleOptions = true,
+    Callback = function(Options)
+        selectedFuelItems = Options
+    end
+})
+
+local fuelConnection
+TpResourcesTab:CreateToggle({
+    Name = "Pull Fuel",
+    Info = "Pulls selected fuel items to the player's position.",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            fuelConnection = RunService.Heartbeat:Connect(function()
+                if not LocalPlayer.Character then return end
+                for _, itemName in pairs(selectedFuelItems) do
+                    for _, item in pairs(Workspace.Items:GetChildren()) do
+                        if item.Name == itemName and (item:IsA("BasePart") or item:IsA("Model")) then
+                            item:PivotTo(LocalPlayer.Character:GetPivot())
+                        end
+                    end
+                end
+            end)
+        else
+            if fuelConnection then
+                fuelConnection:Disconnect()
+            end
+        end
+        Rayfield:Notify({
+            Title = Value and "Fuel Pull Enabled" or "Fuel Pull Disabled",
+            Content = Value and "Pulling selected fuel items." or "Stopped pulling fuel items.",
+            Duration = 3
+        })
+    end
+})
+
+-- Healing Items Section
+TpResourcesTab:CreateLabel("Healing Items")
+
+local healingItems = {"Bandage", "MedKit"}
+local selectedHealingItems = {}
+TpResourcesTab:CreateDropdown({
+    Name = "Healing Items",
+    Options = healingItems,
+    CurrentOption = {},
+    MultipleOptions = true,
+    Callback = function(Options)
+        selectedHealingItems = Options
+    end
+})
+
+local healingConnection
+TpResourcesTab:CreateToggle({
+    Name = "Pull Healing Items",
+    Info = "Pulls selected healing items to the player's position.",
+    CurrentValue = false,
+    Callback = function(Value)
+        if Value then
+            healingConnection = RunService.Heartbeat:Connect(function()
+                if not LocalPlayer.Character then return end
+                for _, itemName in pairs(selectedHealingItems) do
+                    for _, item in pairs(Workspace.Items:GetChildren()) do
+                        if item.Name == itemName and (item:IsA("BasePart") or item:IsA("Model")) then
+                            item:PivotTo(LocalPlayer.Character:GetPivot())
+                        end
+                    end
+                end
+            end)
+        else
+            if healingConnection then
+                healingConnection:Disconnect()
+            end
+        end
+        Rayfield:Notify({
+            Title = Value and "Healing Items Pull Enabled" or "Healing Items Pull Disabled",
+            Content = Value and "Pulling selected healing items." or "Stopped pulling healing items.",
+            Duration = 3
+        })
+    end
+})
+
+-- Chests Section
+TpResourcesTab:CreateLabel("Chests")
+
+TpResourcesTab:CreateButton({
+    Name = "Teleport to Active Chest",
+    Info = "Teleports to the nearest Item Chest with an active ProximityPrompt.",
+    Callback = function()
+        local character = LocalPlayer.Character
+        if not character then
+            Rayfield:Notify({
+                Title = "Error",
+                Text = "Character not found. Please ensure your character is loaded.",
+                Duration = 3
+            })
+            return
+        end
+        for i = 1, 20 do
+            local chestName = i == 1 and "Item Chest" or "Item Chest" .. i
+            local chest = Workspace.Items:FindFirstChild(chestName)
+            if chest and chest:FindFirstChild("Main") and chest.Main:FindFirstChild("ProximityAttachment") and chest.Main.ProximityAttachment:FindFirstChild("ProximityInteraction") then
+                if chest.Main.ProximityAttachment.ProximityInteraction.Enabled then
+                    character:PivotTo(chest:GetPivot())
+                    Rayfield:Notify({
+                        Title = "Teleported",
+                        Content = "Teleported to " .. chestName .. ".",
+                        Duration = 3
+                    })
+                    return
+                end
+            end
+        end
+        Rayfield:Notify({
+            Title = "No Active Chest Found",
+            Text = "No Item Chest with an active ProximityPrompt was found.",
+            Duration = 3
+        })
+    end
+})
+
+-- Notification on Script Load
+Rayfield:Notify({
+    Title = "Script Loaded",
+    Content = "Resource TP & Utility Script with Kill Aura has been loaded successfully.",
+    Duration = 5
+})
