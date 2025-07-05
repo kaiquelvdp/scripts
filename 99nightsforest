@@ -82,7 +82,7 @@ MainTab:CreateToggle({
 
 -- Fire Proximity Button (Activates ProximityInteraction for all Lost Child instances)
 MainTab:CreateButton({
-    Name = "Fire Proximity",
+    Name = "Pull Child",
     Info = "Instantly activates ProximityInteraction for all Lost Child instances in Characters folder.",
     Callback = function()
         local count = 0
@@ -93,7 +93,7 @@ MainTab:CreateButton({
             end
         end
         Rayfield:Notify({
-            Title = "Proximity Fired",
+            Title = "Pull Child",
             Content = "Activated ProximityInteraction for " .. count .. " Lost Child instances.",
             Duration = 3
         })
