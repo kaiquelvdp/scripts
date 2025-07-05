@@ -14,7 +14,7 @@ end
 
 -- Create the main window
 local Window = Rayfield:CreateWindow({
-    Name = "99 Nights in forest",
+    Name = "99 nights in forest",
     LoadingTitle = "Loading UI...",
     LoadingSubtitle = "by Kaique",
     ConfigurationSaving = {
@@ -49,8 +49,8 @@ MainTab:CreateToggle({
                 local character = LocalPlayer.Character
                 if not character then return end
 
-                -- Find the currently equipped tool
-                local tool = character:FindFirstChildWhichIsA("Tool")
+                -- Find the currently equipped tool (check Character and Inventory)
+                local tool = character:FindFirstChildWhichIsA("Tool") or (LocalPlayer:FindFirstChild("Inventory") and LocalPlayer.Inventory:FindFirstChildWhichIsA("Tool"))
                 if not tool then return end
 
                 -- Get the ToolDamageObject remote event
@@ -69,11 +69,12 @@ MainTab:CreateToggle({
                         end)
                     end
                 end
-                wait(0.1) -- Add slight delay to prevent performance issues
+                wait(0.1) -- Slight delay to prevent performance issues
             end)
         else
             if killAuraConnection then
                 killAuraConnection:Disconnect()
+                killAuraConnection = nil
             end
         end
     end
