@@ -65,7 +65,7 @@ MainTab:CreateToggle({
                     if npc:IsA("Model") and npc:FindFirstChildOfClass("Humanoid") and npc:FindFirstChildOfClass("Humanoid").Health > 0 then
                         -- Invoke the ToolDamageObject event with all parameters
                         pcall(function()
-                            toolDamageEvent:InvokeServer(npc, tool, "5_8680620284", playerCFrame)
+                            toolDamageEvent:InvokeServer(npc, tool, "1_5221910054", "CFrame.new(115.810364, 2.3008163, -1.7890898, 1, 0, 0, 0, 1, 0, 0, 0, 1)")
                         end)
                     end
                 end
