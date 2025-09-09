@@ -1,272 +1,216 @@
---// Serviços
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
---// GUI principal
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+-- // Variáveis globais
+local autoFarmLixeiroAtivo = false
+local autoFarmFazendeiroAtivo = false
+local floatPart = nil
 
--- Função para criar botões estilizados
-local function newBtn(text)
+-- // Criar ScreenGui principal
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CustomGui"
+ScreenGui.ResetOnSpawn = false
+if gethui then
+    ScreenGui.Parent = gethui() -- Para exploits
+else
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- // Botão externo (abrir/fechar GUI)
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 120, 0, 40)
+ToggleButton.Position = UDim2.new(0, 20, 0.5, -20)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ToggleButton.Text = "Abrir Painel"
+ToggleButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.TextSize = 16
+ToggleButton.Parent = ScreenGui
+ToggleButton.Active = true
+ToggleButton.Draggable = true
+
+-- // Frame principal
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 300, 0, 400)
+MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.Visible = false
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+MainFrame.ClipsDescendants = true
+
+-- Borda arredondada
+Instance.new("UICorner", MainFrame)
+
+-- Gradient de fundo
+local UIGradient = Instance.new("UIGradient", MainFrame)
+UIGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 40)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 10))
+}
+
+-- // Animação de abrir/fechar
+ToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+    ToggleButton.Text = MainFrame.Visible and "Fechar Painel" or "Abrir Painel"
+end)
+
+-- Função para criar botões
+local function criarBotao(texto, ordem)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 200, 0, 40)
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    btn.Text = text
+    btn.Size = UDim2.new(0.9, 0, 0, 40)
+    btn.Position = UDim2.new(0.05, 0, 0, (ordem-1)*50 + 20)
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    btn.TextColor3 = Color3.fromRGB(220, 220, 220)
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 16
-    btn.AutoButtonColor = true
-    btn.BackgroundTransparency = 0.1
-    btn.BorderSizePixel = 0
-
-    local uicorner = Instance.new("UICorner", btn)
-    uicorner.CornerRadius = UDim.new(0, 8)
-
-    local uiStroke = Instance.new("UIStroke", btn)
-    uiStroke.Thickness = 1.5
-    uiStroke.Color = Color3.fromRGB(80, 80, 80)
-
+    btn.Text = texto
+    btn.Parent = MainFrame
+    Instance.new("UICorner", btn)
     return btn
 end
 
--- Função para tornar arrastável
-local function makeDraggable(gui)
-    local dragging, dragInput, dragStart, startPos
-    gui.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = gui.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
-        end
+-- Função DELETE PART corrigida
+local DeletePartBtn = criarBotao("Delete Part", 1)
+DeletePartBtn.MouseButton1Click:Connect(function()
+    local success, part = pcall(function()
+        return workspace:GetChildren()[3269]:GetChildren()[2]
     end)
-
-    gui.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
-    RunService.Heartbeat:Connect(function()
-        if dragging and dragInput then
-            local delta = dragInput.Position - dragStart
-            gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
-                                     startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-end
-
--- Botão externo para abrir/fechar GUI
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 80, 0, 40)
-toggleBtn.Position = UDim2.new(0, 20, 0.5, -20)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-toggleBtn.Text = "Menu"
-toggleBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 16
-toggleBtn.Parent = screenGui
-makeDraggable(toggleBtn)
-
-local uicorner = Instance.new("UICorner", toggleBtn)
-uicorner.CornerRadius = UDim.new(0, 8)
-local uiStroke = Instance.new("UIStroke", toggleBtn)
-uiStroke.Thickness = 1.5
-uiStroke.Color = Color3.fromRGB(80, 80, 80)
-
--- GUI principal
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 250, 0, 350)
-mainFrame.Position = UDim2.new(0.5, -125, 0.5, -175)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-mainFrame.Visible = false
-mainFrame.Parent = screenGui
-
-makeDraggable(mainFrame)
-
-local corner = Instance.new("UICorner", mainFrame)
-corner.CornerRadius = UDim.new(0, 12)
-
-local stroke = Instance.new("UIStroke", mainFrame)
-stroke.Thickness = 2
-stroke.Color = Color3.fromRGB(80, 80, 80)
-
-local gradient = Instance.new("UIGradient", mainFrame)
-gradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(40,40,40)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20,20,20))
-}
-gradient.Rotation = 90
-
-toggleBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
+    if success and part and part:IsA("BasePart") then
+        part:Destroy()
+        warn("Part deletada com sucesso!")
+    else
+        warn("Não foi possível deletar a Part.")
+    end
 end)
 
--- Layout dos botões
-local layout = Instance.new("UIListLayout", mainFrame)
-layout.Padding = UDim.new(0, 10)
-layout.FillDirection = Enum.FillDirection.Vertical
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.VerticalAlignment = Enum.VerticalAlignment.Top
+-- TELEPORT POINT
+local TeleportBtn = criarBotao("Teleport Point", 2)
+TeleportBtn.MouseButton1Click:Connect(function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1560, 4, -395)
+    end
+end)
 
--- Função Fire 10x
-local function firePrompt(prompt)
+-- Função auxiliar: ativar ProximityPrompt várias vezes
+local function ativarProximityPrompt(prompt)
     if prompt and prompt:IsA("ProximityPrompt") then
         for i = 1, 10 do
-            pcall(function()
-                fireproximityprompt(prompt)
-            end)
+            fireproximityprompt(prompt)
             task.wait(0.05)
         end
     end
 end
 
---------------------------------------------------------------------------------
--- Botões principais
---------------------------------------------------------------------------------
--- Delete Part (corrigido)
-local deleteBtn = newBtn("Delete Part")
-deleteBtn.Parent = mainFrame
-deleteBtn.MouseButton1Click:Connect(function()
-    pcall(function()
-        local targetFolder = workspace:GetChildren()[3269] -- onde está a part
-        if targetFolder and targetFolder:IsA("Folder") or targetFolder:IsA("Model") then
-            local child = targetFolder:FindFirstChildWhichIsA("BasePart", true)
-            if child then
-                child:Destroy()
-                warn("✅ Part deletada com sucesso:", child.Name)
-            else
-                warn("❌ Nenhuma Part encontrada dentro do caminho.")
+-- AUTO FARM LIXEIRO
+local AutoFarmBtn = criarBotao("Auto Farm Lixeiro (Toggle)", 3)
+AutoFarmBtn.MouseButton1Click:Connect(function()
+    autoFarmLixeiroAtivo = not autoFarmLixeiroAtivo
+    warn("Auto Farm Lixeiro:", autoFarmLixeiroAtivo)
+
+    task.spawn(function()
+        while autoFarmLixeiroAtivo do
+            local coleta = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Lixeiro.Coleta:GetChildren()[3]
+            local entrega = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Lixeiro.Entrega.Part
+
+            if coleta then
+                local prompt = coleta:FindFirstChildOfClass("ProximityPrompt")
+                ativarProximityPrompt(prompt)
             end
+
+            if entrega then
+                local prompt = entrega:FindFirstChildOfClass("ProximityPrompt")
+                ativarProximityPrompt(prompt)
+            end
+
+            task.wait(2)
         end
     end)
 end)
 
--- Teleport Point
-local tpBtn = newBtn("Teleport Point")
-tpBtn.Parent = mainFrame
-tpBtn.MouseButton1Click:Connect(function()
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = CFrame.new(-1560, 4, -395)
+-- Funções FLOAT para Fazendeiro
+local function criarFloat()
+    if not floatPart then
+        floatPart = Instance.new("Part")
+        floatPart.Size = Vector3.new(6,1,6)
+        floatPart.Anchored = true
+        floatPart.CanCollide = true
+        floatPart.Transparency = 0.5
+        floatPart.Color = Color3.fromRGB(0,255,0)
+        floatPart.Material = Enum.Material.ForceField
+        floatPart.Parent = workspace
+    end
+end
+local function destruirFloat()
+    if floatPart then floatPart:Destroy() floatPart=nil end
+end
+RunService.Heartbeat:Connect(function()
+    if autoFarmFazendeiroAtivo and floatPart and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        floatPart.Position = LocalPlayer.Character.HumanoidRootPart.Position - Vector3.new(0,5,0)
     end
 end)
 
--- Antilag
-local antilagBtn = newBtn("Antilag")
-antilagBtn.Parent = mainFrame
-antilagBtn.MouseButton1Click:Connect(function()
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("MeshPart") or obj:IsA("SpecialMesh") then
-            obj:Destroy()
-        elseif obj:IsA("BasePart") then
-            obj.Material = Enum.Material.Plastic
-        end
-    end
-    for _, obj in pairs(game:GetService("Lighting"):GetChildren()) do
-        if obj:IsA("BlurEffect") or obj:IsA("ColorCorrectionEffect") or obj:IsA("SunRaysEffect") or obj:IsA("Atmosphere") then
-            obj:Destroy()
-        end
-    end
-end)
-
---------------------------------------------------------------------------------
--- Auto Farm Lixeiro
---------------------------------------------------------------------------------
-local lixeiroToggle = false
-local lixeiroBtn = newBtn("Auto Farm Lixeiro (OFF)")
-lixeiroBtn.Parent = mainFrame
-lixeiroBtn.MouseButton1Click:Connect(function()
-    lixeiroToggle = not lixeiroToggle
-    lixeiroBtn.Text = lixeiroToggle and "Auto Farm Lixeiro (ON)" or "Auto Farm Lixeiro (OFF)"
-end)
-
-task.spawn(function()
-    while task.wait(0.5) do
-        if lixeiroToggle then
-            local char = LocalPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local coleta = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Lixeiro.Coleta:GetChildren()[3]
-                local entrega = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Lixeiro.Entrega:FindFirstChild("Part")
-
-                if coleta and entrega then
-                    hrp.CFrame = CFrame.new(coleta.Position - Vector3.new(0,6,0))
-                    task.wait(0.3)
-                    firePrompt(coleta:FindFirstChildOfClass("ProximityPrompt"))
-
-                    task.wait(3)
-
-                    hrp.CFrame = CFrame.new(entrega.Position - Vector3.new(0,6,0))
-                    task.wait(0.3)
-                    firePrompt(entrega:FindFirstChildOfClass("ProximityPrompt"))
-                end
-            end
-        end
-    end
-end)
-
---------------------------------------------------------------------------------
--- Auto Farm Fazendeiro
---------------------------------------------------------------------------------
-local autoFarmFazendeiroAtivo = false
-local floatPart = nil
-
-local fazendeiroBtn = newBtn("Auto Farm Fazendeiro (OFF)")
-fazendeiroBtn.Parent = mainFrame
-
-fazendeiroBtn.MouseButton1Click:Connect(function()
+-- AUTO FARM FAZENDEIRO
+local FazendeiroBtn = criarBotao("Auto Farm Fazendeiro (Toggle)", 4)
+FazendeiroBtn.MouseButton1Click:Connect(function()
     autoFarmFazendeiroAtivo = not autoFarmFazendeiroAtivo
-    fazendeiroBtn.Text = autoFarmFazendeiroAtivo and "Auto Farm Fazendeiro (ON)" or "Auto Farm Fazendeiro (OFF)"
+    warn("Auto Farm Fazendeiro:", autoFarmFazendeiroAtivo)
 
     if autoFarmFazendeiroAtivo then
-        if not floatPart then
-            floatPart = Instance.new("Part")
-            floatPart.Anchored = true
-            floatPart.CanCollide = true
-            floatPart.Size = Vector3.new(6,1,6)
-            floatPart.Transparency = 1
-            floatPart.Parent = workspace
-        end
-        RunService.Heartbeat:Connect(function()
-            if autoFarmFazendeiroAtivo and floatPart and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                floatPart.Position = LocalPlayer.Character.HumanoidRootPart.Position - Vector3.new(0,3,0)
-            end
-        end)
-    else
-        if floatPart then
-            floatPart:Destroy()
-            floatPart = nil
-        end
-    end
-end)
+        criarFloat()
+        task.spawn(function()
+            while autoFarmFazendeiroAtivo do
+                local coleta = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Fazendeiro.Coleta.Part
+                local entrega = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Fazendeiro.Entrega:GetChildren()[3]
 
-task.spawn(function()
-    while task.wait(0.5) do
-        if autoFarmFazendeiroAtivo then
-            local char = LocalPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local coleta = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Fazendeiro.Coleta:FindFirstChild("Part")
-                local entregaContainer = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Fazendeiro.Entrega
-                local entrega = entregaContainer and entregaContainer:GetChildren()[3]
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = LocalPlayer.Character.HumanoidRootPart
 
-                if coleta and entrega then
-                    hrp.CFrame = CFrame.new(coleta.Position - Vector3.new(0,6,0))
-                    task.wait(0.3)
-                    firePrompt(coleta:FindFirstChildOfClass("ProximityPrompt"))
+                    if coleta then
+                        hrp.CFrame = coleta.CFrame - Vector3.new(0,12,0)
+                        task.wait(0.2)
+                        ativarProximityPrompt(coleta:FindFirstChildOfClass("ProximityPrompt"))
+                    end
 
                     task.wait(2.5)
 
-                    hrp.CFrame = CFrame.new(entrega.Position - Vector3.new(0,6,0))
-                    task.wait(0.3)
-                    firePrompt(entrega:FindFirstChildOfClass("ProximityPrompt"))
+                    if entrega then
+                        hrp.CFrame = entrega.CFrame - Vector3.new(0,12,0)
+                        task.wait(0.2)
+                        ativarProximityPrompt(entrega:FindFirstChildOfClass("ProximityPrompt"))
+                    end
                 end
+                task.wait(2.5)
             end
+        end)
+    else
+        destruirFloat()
+    end
+end)
+
+-- ANTILAG
+local AntiLagBtn = criarBotao("Antilag", 5)
+AntiLagBtn.MouseButton1Click:Connect(function()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            obj.Material = Enum.Material.Plastic
+            obj.Color = Color3.fromRGB(163,162,165)
+            if obj:FindFirstChild("Texture") then obj.Texture:Destroy() end
+            if obj:FindFirstChild("Decal") then obj.Decal:Destroy() end
+        elseif obj:IsA("MeshPart") then
+            obj.Material = Enum.Material.Plastic
+            obj.Color = Color3.fromRGB(163,162,165)
+            obj.TextureID = ""
         end
     end
+
+    for _, e in ipairs(Lighting:GetChildren()) do
+        if e:IsA("BlurEffect") or e:IsA("ColorCorrectionEffect") or e:IsA("SunRaysEffect") then
+            e:Destroy()
+        end
+    end
+    warn("Antilag ativado.")
 end)
