@@ -187,13 +187,13 @@ task.spawn(function()
                 local entrega = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Lixeiro.Entrega:FindFirstChild("Part")
 
                 if coleta and entrega then
-                    hrp.CFrame = CFrame.new(coleta.Position - Vector3.new(0,6,0))
+                    hrp.CFrame = CFrame.new(coleta.Position - Vector3.new(0,13,0))
                     task.wait(0.3)
                     firePrompt(coleta:FindFirstChildOfClass("ProximityPrompt"))
 
                     task.wait(3)
 
-                    hrp.CFrame = CFrame.new(entrega.Position - Vector3.new(0,6,0))
+                    hrp.CFrame = CFrame.new(entrega.Position - Vector3.new(0,13,0))
                     task.wait(0.3)
                     firePrompt(entrega:FindFirstChildOfClass("ProximityPrompt"))
                 end
@@ -250,13 +250,13 @@ task.spawn(function()
                 local entrega = entregaContainer and entregaContainer:GetChildren()[3]
 
                 if coleta and entrega then
-                    hrp.CFrame = CFrame.new(coleta.Position - Vector3.new(0,6,0))
+                    hrp.CFrame = CFrame.new(coleta.Position - Vector3.new(0,13,0))
                     task.wait(0.3)
                     firePrompt(coleta:FindFirstChildOfClass("ProximityPrompt"))
 
                     task.wait(2.5)
 
-                    hrp.CFrame = CFrame.new(entrega.Position - Vector3.new(0,6,0))
+                    hrp.CFrame = CFrame.new(entrega.Position - Vector3.new(0,13,0))
                     task.wait(0.3)
                     firePrompt(entrega:FindFirstChildOfClass("ProximityPrompt"))
                 end
