@@ -128,13 +128,21 @@ end
 --------------------------------------------------------------------------------
 -- Botões principais
 --------------------------------------------------------------------------------
--- Delete Part
+-- Delete Part (corrigido)
 local deleteBtn = newBtn("Delete Part")
 deleteBtn.Parent = mainFrame
 deleteBtn.MouseButton1Click:Connect(function()
     pcall(function()
-        local part = workspace:GetChildren()[3269]:GetChildren()[2]
-        if part then part:Destroy() end
+        local targetFolder = workspace:GetChildren()[3269] -- onde está a part
+        if targetFolder and targetFolder:IsA("Folder") or targetFolder:IsA("Model") then
+            local child = targetFolder:FindFirstChildWhichIsA("BasePart", true)
+            if child then
+                child:Destroy()
+                warn("✅ Part deletada com sucesso:", child.Name)
+            else
+                warn("❌ Nenhuma Part encontrada dentro do caminho.")
+            end
+        end
     end)
 end)
 
@@ -191,7 +199,7 @@ task.spawn(function()
                     task.wait(0.3)
                     firePrompt(coleta:FindFirstChildOfClass("ProximityPrompt"))
 
-                    task.wait(5)
+                    task.wait(3)
 
                     hrp.CFrame = CFrame.new(entrega.Position - Vector3.new(0,6,0))
                     task.wait(0.3)
@@ -215,7 +223,6 @@ fazendeiroBtn.MouseButton1Click:Connect(function()
     autoFarmFazendeiroAtivo = not autoFarmFazendeiroAtivo
     fazendeiroBtn.Text = autoFarmFazendeiroAtivo and "Auto Farm Fazendeiro (ON)" or "Auto Farm Fazendeiro (OFF)"
 
-    -- Criar ou destruir float
     if autoFarmFazendeiroAtivo then
         if not floatPart then
             floatPart = Instance.new("Part")
@@ -225,7 +232,6 @@ fazendeiroBtn.MouseButton1Click:Connect(function()
             floatPart.Transparency = 1
             floatPart.Parent = workspace
         end
-        -- Atualizar float
         RunService.Heartbeat:Connect(function()
             if autoFarmFazendeiroAtivo and floatPart and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 floatPart.Position = LocalPlayer.Character.HumanoidRootPart.Position - Vector3.new(0,3,0)
@@ -250,13 +256,13 @@ task.spawn(function()
                 local entrega = entregaContainer and entregaContainer:GetChildren()[3]
 
                 if coleta and entrega then
-                    hrp.CFrame = CFrame.new(coleta.Position - Vector3.new(0,13,0))
+                    hrp.CFrame = CFrame.new(coleta.Position - Vector3.new(0,6,0))
                     task.wait(0.3)
                     firePrompt(coleta:FindFirstChildOfClass("ProximityPrompt"))
 
                     task.wait(2.5)
 
-                    hrp.CFrame = CFrame.new(entrega.Position - Vector3.new(0,13,0))
+                    hrp.CFrame = CFrame.new(entrega.Position - Vector3.new(0,6,0))
                     task.wait(0.3)
                     firePrompt(entrega:FindFirstChildOfClass("ProximityPrompt"))
                 end
