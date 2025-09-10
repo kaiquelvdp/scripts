@@ -1,276 +1,305 @@
---// Serviços
+-- Roblox Script: Auto Farm GUI with Teleport and Movement Functions (Updated for Visibility and Draggability)
+
+-- Services
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local LocalPlayer = Players.LocalPlayer
+local PathfindingService = game:GetService("PathfindingService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")  -- Note: This may require an exploit executor to work properly
 
---// GUI principal
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+-- Local Player
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
 
--- Função para criar botões estilizados
-local function newBtn(text)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 200, 0, 40)
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    btn.Text = text
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 16
-    btn.AutoButtonColor = true
-    btn.BackgroundTransparency = 0.1
-    btn.BorderSizePixel = 0
+-- Waypoints
+local waypoint1 = Vector3.new(-1560, 4, -396)
+local waypoint2 = Vector3.new(-1559, 4, -389)
+local farmTeleportPos = Vector3.new(-1693, 22, -465)
 
-    local uicorner = Instance.new("UICorner", btn)
-    uicorner.CornerRadius = UDim.new(0, 8)
+-- Function to make UI draggable (supports mouse and touch)
+local function makeDraggable(uiElement)
+    local dragging = false
+    local dragInput
+    local dragStart
+    local startPos
 
-    local uiStroke = Instance.new("UIStroke", btn)
-    uiStroke.Thickness = 1.5
-    uiStroke.Color = Color3.fromRGB(80, 80, 80)
-
-    return btn
-end
-
--- Função para tornar arrastável
-local function makeDraggable(gui)
-    local dragging, dragInput, dragStart, startPos
-    gui.InputBegan:Connect(function(input)
+    uiElement.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
-            startPos = gui.Position
+            startPos = uiElement.Position
+
+            local function onInputEnded()
+                dragging = false
+            end
+
             input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+                if input.UserInputState == Enum.UserInputState.End then
+                    onInputEnded()
+                end
             end)
         end
     end)
 
-    gui.InputChanged:Connect(function(input)
+    uiElement.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
 
-    RunService.Heartbeat:Connect(function()
-        if dragging and dragInput then
-            local delta = dragInput.Position - dragStart
-            gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
-                                     startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input == dragInput or input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            uiElement.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
 end
 
--- Botão externo para abrir/fechar GUI
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 80, 0, 40)
-toggleBtn.Position = UDim2.new(0, 20, 0.5, -20)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-toggleBtn.Text = "Menu"
-toggleBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 16
-toggleBtn.Parent = screenGui
-makeDraggable(toggleBtn)
+-- Toggle GUI (separate ScreenGui for the toggle button)
+local toggleGui = Instance.new("ScreenGui")
+toggleGui.Name = "ToggleGUI"
+toggleGui.Parent = player:WaitForChild("PlayerGui")
 
-local uicorner = Instance.new("UICorner", toggleBtn)
-uicorner.CornerRadius = UDim.new(0, 8)
-local uiStroke = Instance.new("UIStroke", toggleBtn)
-uiStroke.Thickness = 1.5
-uiStroke.Color = Color3.fromRGB(80, 80, 80)
+-- External Toggle Button (to open/close GUI)
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 50, 0, 50)
+toggleButton.Position = UDim2.new(0, 10, 0, 10)
+toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+toggleButton.Text = "Open"
+toggleButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+toggleButton.Parent = toggleGui
 
--- GUI principal
+-- Rounded for toggle button
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 5)
+toggleCorner.Parent = toggleButton
+
+local toggleStroke = Instance.new("UIStroke")
+toggleStroke.Color = Color3.fromRGB(0, 0, 0)
+toggleStroke.Thickness = 1
+toggleStroke.Parent = toggleButton
+
+-- Make toggle button draggable
+makeDraggable(toggleButton)
+
+-- Main GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Name = "AutoFarmGUI"
+screenGui.Enabled = false  -- Start hidden
+
+-- Main Frame (Medium size, beautiful with gradients, outlines, rounded borders)
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 250, 0, 350)
-mainFrame.Position = UDim2.new(0.5, -125, 0.5, -175)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-mainFrame.Visible = false
+mainFrame.Size = UDim2.new(0, 300, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+mainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)  -- Gray
+mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
 
+-- Gradient for background
+local uiGradient = Instance.new("UIGradient")
+uiGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 60, 60)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 30, 30))
+}
+uiGradient.Parent = mainFrame
+
+-- Rounded Corners
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 10)
+uiCorner.Parent = mainFrame
+
+-- Outline (Stroke)
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.fromRGB(0, 0, 0)  -- Black
+uiStroke.Thickness = 2
+uiStroke.Transparency = 0.5
+uiStroke.Parent = mainFrame
+
+-- Make main frame draggable
 makeDraggable(mainFrame)
 
-local corner = Instance.new("UICorner", mainFrame)
-corner.CornerRadius = UDim.new(0, 12)
+-- Title Label
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 50)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Auto Farm GUI"
+titleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+titleLabel.TextSize = 24
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Parent = mainFrame
 
-local stroke = Instance.new("UIStroke", mainFrame)
-stroke.Thickness = 2
-stroke.Color = Color3.fromRGB(80, 80, 80)
-
-local gradient = Instance.new("UIGradient", mainFrame)
-gradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(40,40,40)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20,20,20))
-}
-gradient.Rotation = 90
-
-toggleBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
+-- Toggle Button Connection
+toggleButton.MouseButton1Click:Connect(function()
+    screenGui.Enabled = not screenGui.Enabled
+    toggleButton.Text = screenGui.Enabled and "Close" or "Open"
 end)
 
--- Layout dos botões
-local layout = Instance.new("UIListLayout", mainFrame)
-layout.Padding = UDim.new(0, 10)
-layout.FillDirection = Enum.FillDirection.Vertical
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.VerticalAlignment = Enum.VerticalAlignment.Top
+-- Function Buttons/Toggles
+local yOffset = 60
 
--- Função Fire 10x
-local function firePrompt(prompt)
-    if prompt and prompt:IsA("ProximityPrompt") then
-        for i = 1, 10 do
-            pcall(function()
-                fireproximityprompt(prompt)
-            end)
-            task.wait(0.05)
-        end
+-- Teleport Farm Button
+local teleportFarmButton = Instance.new("TextButton")
+teleportFarmButton.Size = UDim2.new(0.9, 0, 0, 40)
+teleportFarmButton.Position = UDim2.new(0.05, 0, 0, yOffset)
+teleportFarmButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+teleportFarmButton.Text = "Teleport Farm"
+teleportFarmButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+teleportFarmButton.Parent = mainFrame
+
+local teleportCorner = Instance.new("UICorner")
+teleportCorner.CornerRadius = UDim.new(0, 5)
+teleportCorner.Parent = teleportFarmButton
+
+teleportFarmButton.MouseButton1Click:Connect(function()
+    character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(farmTeleportPos)
+end)
+
+yOffset = yOffset + 50
+
+-- Auto Farm Toggle
+local autoFarmToggle = false
+local autoFarmButton = Instance.new("TextButton")
+autoFarmButton.Size = UDim2.new(0.9, 0, 0, 40)
+autoFarmButton.Position = UDim2.new(0.05, 0, 0, yOffset)
+autoFarmButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+autoFarmButton.Text = "Auto Farm: OFF"
+autoFarmButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+autoFarmButton.Parent = mainFrame
+
+local autoFarmCorner = Instance.new("UICorner")
+autoFarmCorner.CornerRadius = UDim.new(0, 5)
+autoFarmCorner.Parent = autoFarmButton
+
+yOffset = yOffset + 50
+
+-- NPCMOVE Toggle (Default ON)
+local npcMoveToggle = true
+local npcMoveButton = Instance.new("TextButton")
+npcMoveButton.Size = UDim2.new(0.8, 0, 0, 30)
+npcMoveButton.Position = UDim2.new(0.1, 0, 0, yOffset)
+npcMoveButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+npcMoveButton.Text = "NPCMOVE: ON"
+npcMoveButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+npcMoveButton.Parent = mainFrame
+
+local npcCorner = Instance.new("UICorner")
+npcCorner.CornerRadius = UDim.new(0, 5)
+npcCorner.Parent = npcMoveButton
+
+yOffset = yOffset + 40
+
+-- MOVETELEPORT Toggle
+local moveTeleportToggle = false
+local moveTeleportButton = Instance.new("TextButton")
+moveTeleportButton.Size = UDim2.new(0.8, 0, 0, 30)
+moveTeleportButton.Position = UDim2.new(0.1, 0, 0, yOffset)
+moveTeleportButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+moveTeleportButton.Text = "MOVETELEPORT: OFF"
+moveTeleportButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+moveTeleportButton.Parent = mainFrame
+
+local moveTeleportCorner = Instance.new("UICorner")
+moveTeleportCorner.CornerRadius = UDim.new(0, 5)
+moveTeleportCorner.Parent = moveTeleportButton
+
+yOffset = yOffset + 50
+
+-- Teleport Objects Button
+local teleportObjectsButton = Instance.new("TextButton")
+teleportObjectsButton.Size = UDim2.new(0.9, 0, 0, 40)
+teleportObjectsButton.Position = UDim2.new(0.05, 0, 0, yOffset)
+teleportObjectsButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+teleportObjectsButton.Text = "Teleport Objects"
+teleportObjectsButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+teleportObjectsButton.Parent = mainFrame
+
+local objectsCorner = Instance.new("UICorner")
+objectsCorner.CornerRadius = UDim.new(0, 5)
+objectsCorner.Parent = teleportObjectsButton
+
+-- Toggle Logic for NPCMOVE and MOVETELEPORT
+npcMoveButton.MouseButton1Click:Connect(function()
+    if moveTeleportToggle then return end  -- Can't activate if other is on
+    npcMoveToggle = not npcMoveToggle
+    npcMoveButton.Text = "NPCMOVE: " .. (npcMoveToggle and "ON" or "OFF")
+    if npcMoveToggle then
+        moveTeleportToggle = false
+        moveTeleportButton.Text = "MOVETELEPORT: OFF"
     end
-end
-
---------------------------------------------------------------------------------
--- Botões principais
---------------------------------------------------------------------------------
--- Delete Part
-local deleteBtn = newBtn("Delete Part")
-deleteBtn.Parent = mainFrame
-deleteBtn.MouseButton1Click:Connect(function()
-    pcall(function()
-        local part = workspace:GetChildren()[3269]:GetChildren()[2]
-        if part then part:Destroy() end
-    end)
 end)
 
--- Teleport Point
-local tpBtn = newBtn("Teleport Point")
-tpBtn.Parent = mainFrame
-tpBtn.MouseButton1Click:Connect(function()
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = CFrame.new(-1560, 4, -395)
+moveTeleportButton.MouseButton1Click:Connect(function()
+    if npcMoveToggle then return end  -- Can't activate if other is on
+    moveTeleportToggle = not moveTeleportToggle
+    moveTeleportButton.Text = "MOVETELEPORT: " .. (moveTeleportToggle and "ON" or "OFF")
+    if moveTeleportToggle then
+        npcMoveToggle = false
+        npcMoveButton.Text = "NPCMOVE: OFF"
     end
 end)
 
--- Antilag
-local antilagBtn = newBtn("Antilag")
-antilagBtn.Parent = mainFrame
-antilagBtn.MouseButton1Click:Connect(function()
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("MeshPart") or obj:IsA("SpecialMesh") then
-            obj:Destroy()
-        elseif obj:IsA("BasePart") then
-            obj.Material = Enum.Material.Plastic
-        end
-    end
-    for _, obj in pairs(game:GetService("Lighting"):GetChildren()) do
-        if obj:IsA("BlurEffect") or obj:IsA("ColorCorrectionEffect") or obj:IsA("SunRaysEffect") or obj:IsA("Atmosphere") then
-            obj:Destroy()
-        end
-    end
-end)
-
---------------------------------------------------------------------------------
--- Auto Farm Lixeiro
---------------------------------------------------------------------------------
-local lixeiroToggle = false
-local lixeiroBtn = newBtn("Auto Farm Lixeiro (OFF)")
-lixeiroBtn.Parent = mainFrame
-lixeiroBtn.MouseButton1Click:Connect(function()
-    lixeiroToggle = not lixeiroToggle
-    lixeiroBtn.Text = lixeiroToggle and "Auto Farm Lixeiro (ON)" or "Auto Farm Lixeiro (OFF)"
-end)
-
-task.spawn(function()
-    while task.wait(0.5) do
-        if lixeiroToggle then
-            local char = LocalPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local coleta = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Lixeiro.Coleta:GetChildren()[3]
-                local entrega = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Lixeiro.Entrega:FindFirstChild("Part")
-
-                if coleta and entrega then
-                    hrp.CFrame = CFrame.new(coleta.Position - Vector3.new(0,6,0))
-                    task.wait(0.3)
-                    firePrompt(coleta:FindFirstChildOfClass("ProximityPrompt"))
-
-                    task.wait(5)
-
-                    hrp.CFrame = CFrame.new(entrega.Position - Vector3.new(0,6,0))
-                    task.wait(0.3)
-                    firePrompt(entrega:FindFirstChildOfClass("ProximityPrompt"))
+-- Auto Farm Logic
+autoFarmButton.MouseButton1Click:Connect(function()
+    autoFarmToggle = not autoFarmToggle
+    autoFarmButton.Text = "Auto Farm: " .. (autoFarmToggle and "ON" or "OFF")
+    
+    if autoFarmToggle then
+        spawn(function()
+            local currentWaypoint = waypoint1
+            while autoFarmToggle do
+                if npcMoveToggle then
+                    -- NPC-like movement using PathfindingService
+                    local path = PathfindingService:CreatePath()
+                    path:ComputeAsync(character.HumanoidRootPart.Position, currentWaypoint)
+                    if path.Status == Enum.PathStatus.Success then
+                        local waypoints = path:GetWaypoints()
+                        for _, wp in ipairs(waypoints) do
+                            humanoid:MoveTo(wp.Position)
+                            humanoid.MoveToFinished:Wait()
+                        end
+                    end
+                elseif moveTeleportToggle then
+                    -- Teleport movement
+                    character.HumanoidRootPart.CFrame = CFrame.new(currentWaypoint)
                 end
-            end
-        end
-    end
-end)
-
---------------------------------------------------------------------------------
--- Auto Farm Fazendeiro
---------------------------------------------------------------------------------
-local autoFarmFazendeiroAtivo = false
-local floatPart = nil
-
-local fazendeiroBtn = newBtn("Auto Farm Fazendeiro (OFF)")
-fazendeiroBtn.Parent = mainFrame
-
-fazendeiroBtn.MouseButton1Click:Connect(function()
-    autoFarmFazendeiroAtivo = not autoFarmFazendeiroAtivo
-    fazendeiroBtn.Text = autoFarmFazendeiroAtivo and "Auto Farm Fazendeiro (ON)" or "Auto Farm Fazendeiro (OFF)"
-
-    -- Criar ou destruir float
-    if autoFarmFazendeiroAtivo then
-        if not floatPart then
-            floatPart = Instance.new("Part")
-            floatPart.Anchored = true
-            floatPart.CanCollide = true
-            floatPart.Size = Vector3.new(6,1,6)
-            floatPart.Transparency = 1
-            floatPart.Parent = workspace
-        end
-        -- Atualizar float
-        RunService.Heartbeat:Connect(function()
-            if autoFarmFazendeiroAtivo and floatPart and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                floatPart.Position = LocalPlayer.Character.HumanoidRootPart.Position - Vector3.new(0,3,0)
+                
+                -- Simulate key E press (requires VirtualInputManager, may need exploit)
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                wait(0.1)  -- Short hold
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                
+                wait(3)  -- Wait 10 seconds
+                
+                -- Switch waypoint
+                currentWaypoint = (currentWaypoint == waypoint1) and waypoint2 or waypoint1
             end
         end)
-    else
-        if floatPart then
-            floatPart:Destroy()
-            floatPart = nil
-        end
     end
 end)
 
-task.spawn(function()
-    while task.wait(0.5) do
-        if autoFarmFazendeiroAtivo then
-            local char = LocalPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local coleta = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Fazendeiro.Coleta:FindFirstChild("Part")
-                local entregaContainer = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Fazendeiro.Entrega
-                local entrega = entregaContainer and entregaContainer:GetChildren()[3]
-
-                if coleta and entrega then
-                    hrp.CFrame = CFrame.new(coleta.Position - Vector3.new(0,13,0))
-                    task.wait(0.3)
-                    firePrompt(coleta:FindFirstChildOfClass("ProximityPrompt"))
-
-                    task.wait(2.5)
-
-                    hrp.CFrame = CFrame.new(entrega.Position - Vector3.new(0,13,0))
-                    task.wait(0.3)
-                    firePrompt(entrega:FindFirstChildOfClass("ProximityPrompt"))
-                end
-            end
-        end
+-- Teleport Objects Logic
+teleportObjectsButton.MouseButton1Click:Connect(function()
+    -- Model 1: workspace:GetChildren()[69]
+    local model1 = workspace:GetChildren()[69]
+    if model1 then
+        model1:MoveTo(waypoint1)  -- Assuming it's a Model with PrimaryPart
     end
-end)end
+    
+    -- Model 2: First "Lixo" in the path
+    local lixoPath = workspace:WaitForChild("xWorkspace"):WaitForChild("Sistemas"):WaitForChild("Empregos"):WaitForChild("Opcoes"):WaitForChild("Lixeiro"):WaitForChild("Coleta")
+    local lixoModel = lixoPath:FindFirstChild("Lixo", true)  -- Recursive find first "Lixo"
+    if lixoModel then
+        lixoModel:MoveTo(waypoint2)  -- Assuming it's movable
+    end
+end)
 
--- Função Auto Farm Fazendeiro local function startAutoFarmFazendeiro() createFloat() spawn(function() while autoFarmFazendeiro do local coleta = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Fazendeiro.Coleta.Part local entrega = workspace.xWorkspace.Sistemas.Empregos.Opcoes.Fazendeiro.Entrega:GetChildren()[3]
-
-humanoidRootPart.CFrame = coleta.CFrame - Vector3.new(0, 6, 0)
-        for i = 1, 10 do
-            if coleta:FindFirstChildOfClass("ProximityPrompt") then
-                fireproximityprompt(coleta:FindFirstChildOfClass("ProximityPrompt"))
+-- Handle character respawn
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = character:WaitForChild("Humanoid")
+end)     fireproximityprompt(coleta:FindFirstChildOfClass("ProximityPrompt"))
             end
         end
         task.wait(2.5)
