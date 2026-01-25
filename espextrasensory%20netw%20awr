@@ -1,0 +1,718 @@
+--[[
+    ╔═══════════════════════════════════════════╗
+    ║       😈 PAKAPAKA ESP SCRIPT 😈           ║
+    ║   Highlight + NameTag com cores de time   ║
+    ╚═══════════════════════════════════════════╝
+]]
+
+-- Serviços
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Variáveis de controle
+local ESP_ENABLED = false
+local ESPConnections = {}
+local PlayerESPData = {}
+
+--============================================--
+--       SISTEMA DE LOADING SCREEN            --
+--============================================--
+
+local function CreateLoadingScreen()
+    -- Criar ScreenGui
+    local LoadingGui = Instance.new("ScreenGui")
+    LoadingGui.Name = "PakapakaLoading"
+    LoadingGui.ResetOnSpawn = false
+    LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    LoadingGui.IgnoreGuiInset = true
+    LoadingGui.Parent = PlayerGui
+    
+    -- Frame de fundo principal
+    local Background = Instance.new("Frame")
+    Background.Name = "Background"
+    Background.Size = UDim2.new(1, 0, 1, 0)
+    Background.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    Background.BorderSizePixel = 0
+    Background.Parent = LoadingGui
+    
+    -- Gradiente de fundo
+    local BGGradient = Instance.new("UIGradient")
+    BGGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 10, 30)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(10, 5, 20)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(5, 0, 15))
+    })
+    BGGradient.Rotation = 45
+    BGGradient.Parent = Background
+    
+    -- Container central
+    local CenterContainer = Instance.new("Frame")
+    CenterContainer.Name = "CenterContainer"
+    CenterContainer.Size = UDim2.new(0, 400, 0, 250)
+    CenterContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
+    CenterContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+    CenterContainer.BackgroundTransparency = 1
+    CenterContainer.Parent = Background
+    
+    -- Imagem/Decal do loading
+    local LoadingImage = Instance.new("ImageLabel")
+    LoadingImage.Name = "LoadingImage"
+    LoadingImage.Size = UDim2.new(0, 120, 0, 120)
+    LoadingImage.Position = UDim2.new(0.5, 0, 0.3, 0)
+    LoadingImage.AnchorPoint = Vector2.new(0.5, 0.5)
+    LoadingImage.BackgroundTransparency = 1
+    LoadingImage.Image = "rbxassetid://558104238"
+    LoadingImage.ImageTransparency = 0
+    LoadingImage.Parent = CenterContainer
+    
+    -- Efeito de brilho na imagem
+    local ImageCorner = Instance.new("UICorner")
+    ImageCorner.CornerRadius = UDim.new(0.1, 0)
+    ImageCorner.Parent = LoadingImage
+    
+    -- Texto "Carregando..."
+    local LoadingText = Instance.new("TextLabel")
+    LoadingText.Name = "LoadingText"
+    LoadingText.Size = UDim2.new(1, 0, 0, 40)
+    LoadingText.Position = UDim2.new(0.5, 0, 0.65, 0)
+    LoadingText.AnchorPoint = Vector2.new(0.5, 0)
+    LoadingText.BackgroundTransparency = 1
+    LoadingText.Text = "Carregando"
+    LoadingText.TextSize = 28
+    LoadingText.Font = Enum.Font.GothamBold
+    LoadingText.TextColor3 = Color3.fromRGB(200, 150, 255)
+    LoadingText.Parent = CenterContainer
+    
+    -- UIStroke no texto
+    local TextStroke = Instance.new("UIStroke")
+    TextStroke.Color = Color3.fromRGB(80, 40, 120)
+    TextStroke.Thickness = 2
+    TextStroke.Parent = LoadingText
+    
+    -- Barra de progresso (background)
+    local ProgressBarBG = Instance.new("Frame")
+    ProgressBarBG.Name = "ProgressBarBG"
+    ProgressBarBG.Size = UDim2.new(0.8, 0, 0, 8)
+    ProgressBarBG.Position = UDim2.new(0.5, 0, 0.85, 0)
+    ProgressBarBG.AnchorPoint = Vector2.new(0.5, 0.5)
+    ProgressBarBG.BackgroundColor3 = Color3.fromRGB(40, 30, 50)
+    ProgressBarBG.BorderSizePixel = 0
+    ProgressBarBG.Parent = CenterContainer
+    
+    local ProgressBGCorner = Instance.new("UICorner")
+    ProgressBGCorner.CornerRadius = UDim.new(1, 0)
+    ProgressBGCorner.Parent = ProgressBarBG
+    
+    -- Barra de progresso (preenchimento)
+    local ProgressBarFill = Instance.new("Frame")
+    ProgressBarFill.Name = "ProgressBarFill"
+    ProgressBarFill.Size = UDim2.new(0, 0, 1, 0)
+    ProgressBarFill.BackgroundColor3 = Color3.fromRGB(180, 100, 255)
+    ProgressBarFill.BorderSizePixel = 0
+    ProgressBarFill.Parent = ProgressBarBG
+    
+    local ProgressFillCorner = Instance.new("UICorner")
+    ProgressFillCorner.CornerRadius = UDim.new(1, 0)
+    ProgressFillCorner.Parent = ProgressBarFill
+    
+    -- Gradiente na barra de progresso
+    local ProgressGradient = Instance.new("UIGradient")
+    ProgressGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(150, 80, 220)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(200, 130, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 100, 240))
+    })
+    ProgressGradient.Parent = ProgressBarFill
+    
+    -- Texto de porcentagem
+    local PercentText = Instance.new("TextLabel")
+    PercentText.Name = "PercentText"
+    PercentText.Size = UDim2.new(1, 0, 0, 25)
+    PercentText.Position = UDim2.new(0.5, 0, 0.92, 0)
+    PercentText.AnchorPoint = Vector2.new(0.5, 0)
+    PercentText.BackgroundTransparency = 1
+    PercentText.Text = "0%"
+    PercentText.TextSize = 16
+    PercentText.Font = Enum.Font.GothamMedium
+    PercentText.TextColor3 = Color3.fromRGB(150, 130, 180)
+    PercentText.Parent = CenterContainer
+    
+    -- Partículas decorativas (pontos flutuantes)
+    local function CreateParticle()
+        local particle = Instance.new("Frame")
+        particle.Size = UDim2.new(0, math.random(2, 6), 0, math.random(2, 6))
+        particle.Position = UDim2.new(math.random() * 0.9 + 0.05, 0, 1.1, 0)
+        particle.BackgroundColor3 = Color3.fromRGB(
+            math.random(150, 220),
+            math.random(80, 150),
+            math.random(200, 255)
+        )
+        particle.BackgroundTransparency = math.random() * 0.5
+        particle.BorderSizePixel = 0
+        particle.Parent = Background
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(1, 0)
+        corner.Parent = particle
+        
+        -- Animação subindo
+        local tween = TweenService:Create(particle, TweenInfo.new(
+            math.random(3, 6),
+            Enum.EasingStyle.Linear
+        ), {
+            Position = UDim2.new(particle.Position.X.Scale, 0, -0.1, 0),
+            BackgroundTransparency = 1
+        })
+        tween:Play()
+        tween.Completed:Connect(function()
+            particle:Destroy()
+        end)
+    end
+    
+    -- Spawn de partículas
+    local particleConnection
+    particleConnection = RunService.RenderStepped:Connect(function()
+        if math.random() < 0.05 then
+            CreateParticle()
+        end
+    end)
+    
+    -- ═══════════════════════════════════════
+    -- ANIMAÇÕES
+    -- ═══════════════════════════════════════
+    
+    -- Animação de rotação na imagem
+    local imageRotation = 0
+    local pulseDirection = 1
+    local pulseValue = 0
+    
+    local imageAnimConnection = RunService.RenderStepped:Connect(function(dt)
+        -- Efeito de pulse suave
+        pulseValue = pulseValue + (dt * pulseDirection * 0.8)
+        if pulseValue >= 1 then
+            pulseDirection = -1
+        elseif pulseValue <= 0 then
+            pulseDirection = 1
+        end
+        
+        local scale = 1 + (pulseValue * 0.08)
+        LoadingImage.Size = UDim2.new(0, 120 * scale, 0, 120 * scale)
+    end)
+    
+    -- Animação dos pontos "Carregando..."
+    local dots = 0
+    local dotsTexts = {"Carregando", "Carregando.", "Carregando..", "Carregando..."}
+    
+    task.spawn(function()
+        while LoadingGui.Parent do
+            dots = (dots % 4) + 1
+            LoadingText.Text = dotsTexts[dots]
+            task.wait(0.4)
+        end
+    end)
+    
+    -- Animação da barra de progresso (10 segundos)
+    local loadingDuration = 10
+    local startTime = tick()
+    
+    local progressConnection
+    progressConnection = RunService.RenderStepped:Connect(function()
+        local elapsed = tick() - startTime
+        local progress = math.clamp(elapsed / loadingDuration, 0, 1)
+        
+        -- Adicionar pequena variação para parecer mais realista
+        local displayProgress = progress
+        if progress < 0.95 then
+            displayProgress = progress + (math.sin(elapsed * 2) * 0.02)
+            displayProgress = math.clamp(displayProgress, 0, progress + 0.05)
+        end
+        
+        ProgressBarFill.Size = UDim2.new(displayProgress, 0, 1, 0)
+        PercentText.Text = string.format("%d%%", math.floor(displayProgress * 100))
+        
+        -- Animação do gradiente
+        ProgressGradient.Offset = Vector2.new(math.sin(elapsed * 3) * 0.3, 0)
+    end)
+    
+    -- Aguardar 10 segundos
+    task.wait(loadingDuration)
+    
+    -- Garantir 100%
+    ProgressBarFill.Size = UDim2.new(1, 0, 1, 0)
+    PercentText.Text = "100%"
+    LoadingText.Text = "Concluído!"
+    LoadingText.TextColor3 = Color3.fromRGB(100, 255, 150)
+    
+    task.wait(0.5)
+    
+    -- Parar animações
+    particleConnection:Disconnect()
+    imageAnimConnection:Disconnect()
+    progressConnection:Disconnect()
+    
+    -- ═══════════════════════════════════════
+    -- FADEOUT
+    -- ═══════════════════════════════════════
+    
+    local fadeInfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    
+    TweenService:Create(Background, fadeInfo, {BackgroundTransparency = 1}):Play()
+    TweenService:Create(LoadingImage, fadeInfo, {ImageTransparency = 1}):Play()
+    TweenService:Create(LoadingText, fadeInfo, {TextTransparency = 1}):Play()
+    TweenService:Create(TextStroke, fadeInfo, {Transparency = 1}):Play()
+    TweenService:Create(ProgressBarBG, fadeInfo, {BackgroundTransparency = 1}):Play()
+    TweenService:Create(ProgressBarFill, fadeInfo, {BackgroundTransparency = 1}):Play()
+    TweenService:Create(PercentText, fadeInfo, {TextTransparency = 1}):Play()
+    
+    task.wait(1.1)
+    
+    -- Destruir GUI
+    LoadingGui:Destroy()
+    
+    return true
+end
+
+--============================================--
+--          SISTEMA DE INTRO PAKAPAKA         --
+--============================================--
+
+local function CreatePakapakaIntro()
+    -- Criar ScreenGui
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "PakapakaIntro"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ScreenGui.Parent = PlayerGui
+    
+    -- ═══════════════════════════════════════
+    -- TOCAR SOM DA INTRO
+    -- ═══════════════════════════════════════
+    local IntroSound = Instance.new("Sound")
+    IntroSound.Name = "PakapakaIntroSound"
+    IntroSound.SoundId = "rbxassetid://4929575301"
+    IntroSound.Volume = 1
+    IntroSound.PlayOnRemove = false
+    IntroSound.Parent = SoundService
+    IntroSound:Play()
+    
+    -- Limpar som após terminar
+    IntroSound.Ended:Connect(function()
+        IntroSound:Destroy()
+    end)
+    
+    -- Frame de fundo com efeito
+    local BackgroundFrame = Instance.new("Frame")
+    BackgroundFrame.Name = "Background"
+    BackgroundFrame.Size = UDim2.new(1, 0, 1, 0)
+    BackgroundFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    BackgroundFrame.BackgroundTransparency = 1
+    BackgroundFrame.Parent = ScreenGui
+    
+    -- TextLabel principal
+    local IntroText = Instance.new("TextLabel")
+    IntroText.Name = "IntroText"
+    IntroText.Size = UDim2.new(0, 500, 0, 120)
+    IntroText.Position = UDim2.new(0.5, 0, 0.5, 0)
+    IntroText.AnchorPoint = Vector2.new(0.5, 0.5)
+    IntroText.BackgroundTransparency = 1
+    IntroText.Text = "😈 PAKAPAKA 😈"
+    IntroText.TextSize = 60
+    IntroText.Font = Enum.Font.GothamBlack
+    IntroText.TextTransparency = 1
+    IntroText.TextScaled = false
+    IntroText.Parent = ScreenGui
+    
+    -- UIGradient (Roxo claro para roxo escuro)
+    local UIGradient = Instance.new("UIGradient")
+    UIGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 130, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(150, 80, 200)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(75, 0, 130))
+    })
+    UIGradient.Rotation = 45
+    UIGradient.Parent = IntroText
+    
+    -- UIStroke para contorno
+    local UIStroke = Instance.new("UIStroke")
+    UIStroke.Color = Color3.fromRGB(50, 0, 80)
+    UIStroke.Thickness = 3
+    UIStroke.Transparency = 1
+    UIStroke.Parent = IntroText
+    
+    -- Subtítulo
+    local SubText = Instance.new("TextLabel")
+    SubText.Name = "SubText"
+    SubText.Size = UDim2.new(0, 400, 0, 40)
+    SubText.Position = UDim2.new(0.5, 0, 0.6, 20)
+    SubText.AnchorPoint = Vector2.new(0.5, 0)
+    SubText.BackgroundTransparency = 1
+    SubText.Text = "ESP ATIVANDO..."
+    SubText.TextSize = 24
+    SubText.Font = Enum.Font.GothamMedium
+    SubText.TextColor3 = Color3.fromRGB(180, 120, 220)
+    SubText.TextTransparency = 1
+    SubText.Parent = ScreenGui
+    
+    -- Animações
+    local tweenInfo = TweenInfo.new(0.8, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    local tweenInfoFade = TweenInfo.new(0.5, Enum.EasingStyle.Quad)
+    
+    -- Fade in do background
+    TweenService:Create(BackgroundFrame, TweenInfo.new(0.3), {BackgroundTransparency = 0.7}):Play()
+    
+    task.wait(0.2)
+    
+    -- Aparecer texto principal com efeito
+    local scaleEffect = TweenService:Create(IntroText, tweenInfo, {TextTransparency = 0})
+    local strokeEffect = TweenService:Create(UIStroke, tweenInfo, {Transparency = 0})
+    scaleEffect:Play()
+    strokeEffect:Play()
+    
+    task.wait(0.5)
+    
+    -- Aparecer subtítulo
+    TweenService:Create(SubText, tweenInfoFade, {TextTransparency = 0}):Play()
+    
+    -- Animação do gradiente
+    local gradientRotation = 0
+    local gradientConnection
+    gradientConnection = RunService.RenderStepped:Connect(function(dt)
+        gradientRotation = gradientRotation + (dt * 100)
+        if gradientRotation > 360 then gradientRotation = 0 end
+        UIGradient.Rotation = gradientRotation
+    end)
+    
+    -- Esperar e mudar texto
+    task.wait(1.5)
+    SubText.Text = "✓ ESP ATIVADO!"
+    SubText.TextColor3 = Color3.fromRGB(100, 255, 100)
+    
+    task.wait(1)
+    
+    -- Parar animação do gradiente
+    gradientConnection:Disconnect()
+    
+    -- Fade out
+    TweenService:Create(IntroText, tweenInfoFade, {TextTransparency = 1}):Play()
+    TweenService:Create(UIStroke, tweenInfoFade, {Transparency = 1}):Play()
+    TweenService:Create(SubText, tweenInfoFade, {TextTransparency = 1}):Play()
+    TweenService:Create(BackgroundFrame, tweenInfoFade, {BackgroundTransparency = 1}):Play()
+    
+    task.wait(0.6)
+    
+    -- Destruir GUI
+    ScreenGui:Destroy()
+    
+    return true
+end
+
+--============================================--
+--          SISTEMA DE ESP                    --
+--============================================--
+
+-- Obter cor do time do jogador
+local function GetTeamColor(player)
+    if player and player.Team then
+        return player.Team.TeamColor.Color
+    else
+        -- Cor padrão se não tiver time (branco)
+        return Color3.fromRGB(255, 255, 255)
+    end
+end
+
+-- Verificar se o jogador é válido para ESP
+local function IsValidTarget(player)
+    if not player then return false end
+    if player == LocalPlayer then return false end
+    if not player.Character then return false end
+    
+    local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+    if humanoid.Health <= 0 then return false end
+    
+    local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return false end
+    
+    return true
+end
+
+-- Remover ESP de um jogador
+local function RemoveESP(player)
+    -- Limpar conexões
+    if PlayerESPData[player] then
+        for _, connection in pairs(PlayerESPData[player].Connections or {}) do
+            if connection then
+                pcall(function() connection:Disconnect() end)
+            end
+        end
+        PlayerESPData[player] = nil
+    end
+    
+    -- Remover objetos visuais
+    if player.Character then
+        local highlight = player.Character:FindFirstChild("PAKAPAKA_Highlight")
+        if highlight then highlight:Destroy() end
+        
+        local head = player.Character:FindFirstChild("Head")
+        if head then
+            local billboard = head:FindFirstChild("PAKAPAKA_NameTag")
+            if billboard then billboard:Destroy() end
+        end
+    end
+end
+
+-- Criar ESP para um jogador
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+    
+    -- Função interna para setup do ESP
+    local function SetupCharacterESP(character)
+        if not ESP_ENABLED then return end
+        if not character then return end
+        
+        -- Esperar componentes carregarem
+        local humanoid = character:WaitForChild("Humanoid", 5)
+        local rootPart = character:WaitForChild("HumanoidRootPart", 5)
+        local head = character:WaitForChild("Head", 5)
+        
+        if not humanoid or not rootPart or not head then return end
+        if humanoid.Health <= 0 then return end
+        
+        -- Remover ESP existente primeiro
+        RemoveESP(player)
+        
+        -- Obter cor do time
+        local teamColor = GetTeamColor(player)
+        
+        -- ═══════════════════════════════════════
+        -- CRIAR HIGHLIGHT
+        -- ═══════════════════════════════════════
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "PAKAPAKA_Highlight"
+        highlight.Adornee = character
+        highlight.FillColor = teamColor
+        highlight.OutlineColor = teamColor
+        highlight.FillTransparency = 0.6
+        highlight.OutlineTransparency = 0
+        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        highlight.Parent = character
+        
+        -- ═══════════════════════════════════════
+        -- CRIAR NAMETAG (SEM BARRA DE VIDA)
+        -- ═══════════════════════════════════════
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "PAKAPAKA_NameTag"
+        billboard.Adornee = head
+        billboard.Size = UDim2.new(0, 200, 0, 70)
+        billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+        billboard.AlwaysOnTop = true
+        billboard.LightInfluence = 0
+        billboard.MaxDistance = math.huge
+        billboard.Parent = head
+        
+        -- Frame container
+        local container = Instance.new("Frame")
+        container.Name = "Container"
+        container.Size = UDim2.new(1, 0, 1, 0)
+        container.BackgroundTransparency = 1
+        container.Parent = billboard
+        
+        -- Nome do jogador
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Name = "PlayerName"
+        nameLabel.Size = UDim2.new(1, 0, 0, 20)
+        nameLabel.Position = UDim2.new(0, 0, 0, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = player.DisplayName .. " (@" .. player.Name .. ")"
+        nameLabel.TextColor3 = teamColor
+        nameLabel.TextSize = 14
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.TextStrokeTransparency = 0
+        nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        nameLabel.Parent = container
+        
+        -- Texto de vida (SEM BARRA)
+        local healthText = Instance.new("TextLabel")
+        healthText.Name = "HealthText"
+        healthText.Size = UDim2.new(1, 0, 0, 18)
+        healthText.Position = UDim2.new(0, 0, 0, 22)
+        healthText.BackgroundTransparency = 1
+        healthText.Text = string.format("%d/%d", math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
+        healthText.TextColor3 = Color3.fromRGB(255, 100, 100)
+        healthText.TextSize = 13
+        healthText.Font = Enum.Font.GothamMedium
+        healthText.TextStrokeTransparency = 0
+        healthText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        healthText.Parent = container
+        
+        -- Distância em metros
+        local distanceLabel = Instance.new("TextLabel")
+        distanceLabel.Name = "Distance"
+        distanceLabel.Size = UDim2.new(1, 0, 0, 16)
+        distanceLabel.Position = UDim2.new(0, 0, 0, 42)
+        distanceLabel.BackgroundTransparency = 1
+        distanceLabel.Text = "0m"
+        distanceLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        distanceLabel.TextSize = 12
+        distanceLabel.Font = Enum.Font.Gotham
+        distanceLabel.TextStrokeTransparency = 0
+        distanceLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        distanceLabel.Parent = container
+        
+        -- ═══════════════════════════════════════
+        -- CONEXÕES E ATUALIZAÇÕES
+        -- ═══════════════════════════════════════
+        
+        local connections = {}
+        
+        -- Atualizar vida
+        local function UpdateHealth()
+            if not humanoid or not humanoid.Parent then return end
+            
+            local health = humanoid.Health
+            local maxHealth = humanoid.MaxHealth
+            local healthPercent = math.clamp(health / maxHealth, 0, 1)
+            
+            -- Cor do texto baseada na vida
+            if healthPercent > 0.6 then
+                healthText.TextColor3 = Color3.fromRGB(100, 255, 100)
+            elseif healthPercent > 0.3 then
+                healthText.TextColor3 = Color3.fromRGB(255, 255, 100)
+            else
+                healthText.TextColor3 = Color3.fromRGB(255, 100, 100)
+            end
+            
+            -- Atualizar texto
+            healthText.Text = string.format("%d/%d", math.floor(health), math.floor(maxHealth))
+        end
+        
+        connections.HealthChanged = humanoid.HealthChanged:Connect(UpdateHealth)
+        UpdateHealth() -- Atualizar inicialmente
+        
+        -- Atualizar distância
+        connections.RenderStepped = RunService.RenderStepped:Connect(function()
+            if not rootPart or not rootPart.Parent then return end
+            if not LocalPlayer.Character then return end
+            
+            local localRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if not localRoot then return end
+            
+            local distance = (rootPart.Position - localRoot.Position).Magnitude
+            distanceLabel.Text = string.format("%dm", math.floor(distance))
+        end)
+        
+        -- Quando morrer
+        connections.Died = humanoid.Died:Connect(function()
+            RemoveESP(player)
+        end)
+        
+        -- Quando o time mudar, atualizar cor
+        connections.TeamChanged = player:GetPropertyChangedSignal("Team"):Connect(function()
+            local newColor = GetTeamColor(player)
+            
+            -- Atualizar cores
+            highlight.FillColor = newColor
+            highlight.OutlineColor = newColor
+            nameLabel.TextColor3 = newColor
+        end)
+        
+        -- Salvar dados do ESP
+        PlayerESPData[player] = {
+            Highlight = highlight,
+            Billboard = billboard,
+            Connections = connections
+        }
+    end
+    
+    -- Setup se já tem personagem
+    if player.Character then
+        task.spawn(function()
+            SetupCharacterESP(player.Character)
+        end)
+    end
+    
+    -- Quando personagem spawnar
+    local characterAddedConnection = player.CharacterAdded:Connect(function(character)
+        task.wait(0.5) -- Esperar um pouco para garantir que tudo carregou
+        SetupCharacterESP(character)
+    end)
+    
+    -- Salvar conexão
+    if not ESPConnections[player] then
+        ESPConnections[player] = {}
+    end
+    table.insert(ESPConnections[player], characterAddedConnection)
+end
+
+-- Inicializar ESP para todos os jogadores
+local function InitializeESP()
+    ESP_ENABLED = true
+    
+    -- Criar ESP para jogadores existentes
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            task.spawn(function()
+                CreateESP(player)
+            end)
+        end
+    end
+    
+    -- Detectar novos jogadores entrando
+    Players.PlayerAdded:Connect(function(player)
+        if ESP_ENABLED then
+            CreateESP(player)
+        end
+    end)
+    
+    -- Limpar quando jogador sair
+    Players.PlayerRemoving:Connect(function(player)
+        RemoveESP(player)
+        
+        -- Limpar conexões principais
+        if ESPConnections[player] then
+            for _, connection in pairs(ESPConnections[player]) do
+                pcall(function() connection:Disconnect() end)
+            end
+            ESPConnections[player] = nil
+        end
+    end)
+end
+
+-- Função para desativar ESP (caso necessário)
+local function DisableESP()
+    ESP_ENABLED = false
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        RemoveESP(player)
+    end
+end
+
+--============================================--
+--          EXECUÇÃO PRINCIPAL               --
+--============================================--
+
+-- Executar loading, intro e depois ativar ESP
+task.spawn(function()
+    -- 1. Mostrar Loading Screen (10 segundos)
+    CreateLoadingScreen()
+    
+    -- 2. Mostrar intro PAKAPAKA (com som)
+    CreatePakapakaIntro()
+    
+    -- 3. Ativar ESP após intro
+    InitializeESP()
+    
+    -- Mensagem no console
+    print("═══════════════════════════════════════")
+    print("   😈 PAKAPAKA ESP ATIVADO! 😈")
+    print("   • Highlight com cor do time")
+    print("   • NameTag com nome")
+    print("   • Vida em texto")
+    print("   • Distância em metros")
+    print("   • Atualização automática")
+    print("═══════════════════════════════════════")
+end)
